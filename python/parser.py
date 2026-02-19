@@ -12,8 +12,38 @@ def tokens():
     return valid_tokens
 
 #parse the input text stream into tokens
-def lex(sentence: str):
-    pass
+#TODO add type tags to each token
+def lex(s: str):
+    tokens = []
+    i = 0
+    while i < len(s):
+        char = s[i]
+
+        #skip all whitespace
+        if char.isspace():
+            i += 1
+            continue
+        #if it's an open parentheses, then we have an expression
+        elif char == "(" or char == ")":
+            tokens.append(char)
+            i += 1
+        #if it's a number, parse the full number
+        elif char.isdigit():
+            next_token = ""
+            while i < len(s) and s[i].isdigit():
+                next_token += s[i]
+                i += 1
+            tokens.append(next_token)
+        #otherwise it's one of the keywords
+        else:
+            next_token = ""
+            while i < len(s) and not s[i].isspace():
+                next_token += s[i]
+                i += 1
+            tokens.append(next_token)
+            i += 1
+    return tokens
+    
 
 #create an AST based on a set of tokens and the language grammar
 def parse(tokens: list):
@@ -29,6 +59,8 @@ def main():
     expr = sys.argv[-1]
     print(expr)
 
+    tokens = lex(expr)
+    print(tokens)
 
 if __name__ == "__main__":
     main()
