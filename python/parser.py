@@ -1,7 +1,24 @@
 import os
 import sys
 
+"""
+Context free grammar that describes the subset of the language we're parsing
+
+<P>             ::= <expr>
+<expr>          ::= <unary-op> | <binary-op> | <variable-op> | <num>
+<expr-list>     ::= <expr> <expr-list> | ε
+<unary-op>      ::= (<unary> <expr>)
+<binary-op>     ::= (<binary> <expr> <expr>)
+<variable-op>   ::= (<variable> <expr> <expr-list>)
+<unary>         ::= abs | sqrt 
+<binary>        ::= mod | expt | - | /
+<variable>      ::= min | max | + | *
+<num>   ::= <digit> | <digit> <num>
+<digit> ::= 0 | 1 | .. | 9
+"""
+
 #AST structure?
+#TODO remove if not needed
 class Tree:
     pass
 
@@ -13,6 +30,7 @@ def tokens():
 
 #parse the input text stream into tokens
 #TODO add type tags to each token
+#TODO add support for float numbers
 def lex(s: str):
     tokens = []
     i = 0
@@ -30,7 +48,8 @@ def lex(s: str):
         #if it's a number, parse the full number
         elif char.isdigit():
             next_token = ""
-            while i < len(s) and s[i].isdigit():
+            #might be a float number
+            while i < len(s) and (s[i].isdigit() or s[i] == "."):
                 next_token += s[i]
                 i += 1
             tokens.append(next_token)
