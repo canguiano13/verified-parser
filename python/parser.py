@@ -2,33 +2,31 @@ import os
 import sys
 
 """
-Context free grammar that describes the subset of the language we're parsing
+Context free grammar that more or less describes the subset of the language we're parsing
 
 <P>             ::= <expr>
 <expr>          ::= <unary-op> | <binary-op> | <variable-op> | <num>
 <expr-list>     ::= <expr> <expr-list> | ε
 <unary-op>      ::= (<unary> <expr>)
 <binary-op>     ::= (<binary> <expr> <expr>)
-<variable-op>   ::= (<variable> <expr> <expr-list>)
-<unary>         ::= abs | sqrt 
+<variable-op>   ::= (<variable> <expr> <expr> <expr-list>)
+<unary>         ::= abs | sqrt | ceil 
 <binary>        ::= mod | expt | - | /
 <variable>      ::= min | max | + | *
-<num>   ::= <digit> | <digit> <num>
-<digit> ::= 0 | 1 | .. | 9
+<num>           ::= -<digits> | <digits> 
+<digits>        ::= <digit> | <digit> <digit>
+<digit>         ::= 0 | 1 | .. | 9
 """
 
-#AST structure?
-#TODO remove if not needed
-class Tree:
+VALID_OPS = {"abs", "sqrt", "ceil", "mod", "expt", "sqrt", "+", "-", "*", "/", "min", "max"}
+VALID_TOKENS = {"(", ")"} #not sure if we even need this
+VALID_TYPES = {"LPAREN", "OP", "RPAREN", "NUM"}
+
+#create an AST based on a set of tokens and the language grammar
+def parse(tokens: list):
     pass
-
-#defines the valid tokens in the language
-def tokens():
-    valid_tokens = {"(", ")", "abs", "sqrt", "mod", "expt", "sqrt", "+", "-", "*", "/", "min", "max"}
-    #later add the list operations
-    return valid_tokens
-
-#parse the input text stream into tokens
+   
+#derive tokens from the input tokens 
 #TODO add type tags to each token
 #TODO add support for float numbers
 def lex(s: str):
@@ -42,31 +40,37 @@ def lex(s: str):
             i += 1
             continue
         #if it's an open parentheses, then we have an expression
-        elif char == "(" or char == ")":
-            tokens.append(char)
+        elif char == "(":
+            tokens.append(("LPAREN", char))
+            i += 1
+        #if it's a close parenthesis, we have the end of an expression
+        elif char == ")":
+            tokens.append(("RPAREN", char))
             i += 1
         #if it's a number, parse the full number
         elif char.isdigit():
             next_token = ""
             #might be a float number
-            while i < len(s) and (s[i].isdigit() or s[i] == "."):
+            #TODO add support for floats
+            while i < len(s) and s[i].isdigit():
                 next_token += s[i]
                 i += 1
-            tokens.append(next_token)
+            tokens.append(("NUMBER", next_token))
         #otherwise it's one of the keywords
         else:
             next_token = ""
             while i < len(s) and not s[i].isspace():
                 next_token += s[i]
                 i += 1
-            tokens.append(next_token)
-            i += 1
+            if next_token in VALID_OPS:
+                tokens.append(("OP", next_token))
+            else:
+                print(f"ERROR: UNKNOWN TOKEN \"{next_token}\"")
+                sys.exit(1)
+
     return tokens
     
 
-#create an AST based on a set of tokens and the language grammar
-def parse(tokens: list):
-    pass
 
 def main():
     #user doesn't provide the expression
