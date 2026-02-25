@@ -15,7 +15,10 @@ ensures true
 }
 
 //unit tests for lexing
-method testLex(){
+method testLex()
+requires true
+ensures true
+{
     //TODO implement
     assume(false);
 }
@@ -54,7 +57,10 @@ ensures true
 }
 
 //unit tests for parsing
-method testParse(){
+method testParse()
+requires true
+ensures true
+{
     //TODO implement
     assume(false);
 }
@@ -64,8 +70,18 @@ requires true
 ensures true
 {
     //so..funny story. dafny doesn't actually support taking in input or producing simple output.
-    //the workaround is to use files. so users will put their expression into a single .lsp file, and
-    //our program will read it, then parse, then spit out the ast into a file called ast.out
+    //from the Dafny documentation FAQ
+    /*
+        Question
+        How do I read a file as a string?
+    
+        Answer
+        You can’t in pure Dafny. Not yet. Such a capability will eventually be part of a standard IO library.
 
+        What you can do is to write such a function in another language, say Java, and then use it in Dafny by extern declarations.
+    */
+    //maybe we can do this and then add some python interface that extends the functionality like he was talking about in lecture
+    //I would imagine that we can create some python file like main.py, then import the needed function
+    //from the transpiled parser.py file.
     assume(false);
 }
