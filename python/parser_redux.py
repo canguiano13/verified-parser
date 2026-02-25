@@ -19,7 +19,7 @@ Context free grammar that more or less describes the subset of the language we'r
 
 TOKEN_TYPES = {
         #single char tokens
-        "LEFT_PAREN", "RIGHT_PAREN", "DOT", "MINUS", "PLUS", "SLASH", "STAR", "CARET"
+        "LEFT_PAREN", "RIGHT_PAREN", "DOT", "MINUS", "PLUS", "SLASH", "STAR",
         #literals
             #identifier would be something like abs, sqrt, ceil, mod, expt, min, max
             #number could be float or int, we will have to see
@@ -33,13 +33,8 @@ TOKEN_TYPES = {
 #abs, ceil, sqrt, expt, mod, max, min
 #TODO maybe add ceil and floor? this requires support for floats
 VALID_OPS = {"abs", "sqrt", "ceil", "mod", "expt", "sqrt", "+", "-", "*", "/", "min", "max"}
-UNARY_OPS = {"abs", "sqrt", "ceil"}
-BINARY_OPS = {"mod", "expt", "-", "/"}
-VARIABLE_OPS = {"min", "max", "+", "*"}
-VALID_TOKENS = {"(", ")"} #not sure if we even need this
-VALID_TYPES = {"LPAREN", "OP", "RPAREN", "NUMBER"}
 
-
+#------------------------------------------LEXING----------------------------------------
 #main lexing function that will give us our list of tagged tokens
 def lex(s: str):
    return scanTokens(s, 0, 0)
@@ -47,6 +42,16 @@ def lex(s: str):
 #simple helper function that tells us when we've consumed all the characters
 def isAtEnd(s, current):
     return current >= len(s)
+
+#another useful function
+def isDigit(c):
+    return ord(c) >= ord('0') and ord(c) <= ord('9')
+def isAlpha(c):
+    return (ord(c) >= ord('a') and ord(c) <= ord('z')) or \
+           (ord(c) >= ord('A') and ord(c) <= ord('Z')) or \
+           (c == '_')
+def isAlphaNumeric(c):
+    return isAlpha(c) or isDigit(c)
 
 #takes the input string s and starts generating tokens
 #also uses some fields for representing offsets into the string
@@ -60,7 +65,6 @@ def scanTokens(s: str, start: int, current: int):
         #scan a single token
         #each turn, we just scan a single token
         tokens, current = scanToken(s, start, current, tokens)
-        current += 1
 
     #add EOF after all tokens are scanned
     #this will make parsing a little cleaner
@@ -101,7 +105,16 @@ def scanToken(s: str, start: int, current: int, tokens: list):
     elif c == '/':
         tokens = addToken("SLASH", tokens)
     else:
-        error(f"unexpected character \'{c}\'")
+        #check if its a number
+        if (isDigit(c)):
+            #if so, the start is current - 1 because we just consumed a number
+            tokens, current = number(s, current-1, current, tokens)
+        #otherwise check if its a keyword
+        elif (isAlpha(c)):
+            #if so, again we just consumed a character
+            tokens, current = identifier(s, current-1, current, tokens)
+        else:
+            error(f"unexpected character \'{c}\'")
 
     return tokens, current
 
@@ -119,12 +132,45 @@ def match(s: str, current: int, expected: int):
     return (True, current + 1)
 
 #lookahead but do not consume the next character
-
-def peek(s: str, current: int, expected: int):
-    if(isAtEnd(s, current)):
+def peek(s: str, current: int):
+    if isAtEnd(s, current):
         return "\0"
     return s[current]
 
+#lookahead but an extra character
+def peekNext(s: str, current: int):
+    if (current+1 >= len(s)):
+        return '\0'
+    return s[current + 1]
+
+#consume a number literal
+def number(s: str, start: int, current: int, tokens: list):
+    while(isDigit(peek(s, current))):
+          #don't need to store the character, it'll be picked up later
+          #might have to just use a sequence when we convert to dafny and gradually add characters to a result string one at a time?
+          _, current = advance(s, current) 
+
+    #look for a fractional part and any remaining parts
+    #TODO starting on pg52 of the pdf
+
+    #add the token
+    return addTokenNonempty("NUMBER", s[start:current], tokens), current
+
+def identifier(s: str, start: int, current: int, tokens: list):
+    while(isAlphaNumeric(peek(s, current))):
+        _, current = advance(s, current)
+
+    #check that identifier is in list of valid identifiers
+    identifier_val = s[start:current]
+    if identifier_val not in VALID_OPS:
+        error(f"unexpected identifier \"{identifier_val}\"")
+    return addTokenNonempty("IDENTIFIER", identifier_val, tokens), current
+
+#------------------------------------------PARSING----------------------------------------------
+#create an AST based on a set of tokens and the language grammar
+def parse(tokens: list):
+    ast, look_ahead = parse_expr(tokens, 0)
+    return ast
 
 #error handling..
 def error(reason):
@@ -135,14 +181,14 @@ def error(reason):
 def main():
     #user doesn't provide the expression
     if len(sys.argv) <= 1:
-        print("ERR: Please provide an expression to parse.")
-        print("e.g. parser.py \"(+ 1 2 3)\"")
-        exit(1)
+        print("Error: please provide an expression to parse.\ne.g. \"python3 parser.py \'(+ 1 2 3)\'\"")
+        sys.exit(1)
 
     expr = sys.argv[-1]
     print(expr)
 
     tokens = lex(expr)
+    print(tokens)
     for token in tokens:
         print(token)
 
@@ -153,81 +199,5 @@ if __name__ == "__main__":
     main()
 
 
-
-#create an AST based on a set of tokens and the language grammar
-def parse(tokens: list):
-    ast, look_ahead = parse_expr(tokens, 0)
-    return ast
-
-def parse_unary_op(op, tokens, look_ahead):
-    #guaranteed to have at least one arg
-    arg, look_ahead = parse_expr(tokens, look_ahead)
-    # consume ')'
-    look_ahead += 1
-    return (("UNARY_OP", op, arg), look_ahead)
-
-def parse_binary_op(op, tokens, look_ahead):
-    #guaranteed to have exactly two arguments
-    arg1, look_ahead = parse_expr(tokens, look_ahead)
-    arg2, look_ahead = parse_expr(tokens, look_ahead)
-    #consume ')'
-    look_ahead += 1  
-    return (("BINARY_OP", op, arg1, arg2), look_ahead)
-
-def parse_variable_op(op, tokens, look_ahead):
-    #guaranteed to have at least two arguments
-    arg1, look_ahead = parse_expr(tokens, look_ahead)
-    arg2, look_ahead = parse_expr(tokens, look_ahead)
-    args = [arg1, arg2]
-    #parse remaining args
-    while tokens[look_ahead][0] != "RPAREN":
-        arg, look_ahead = parse_expr(tokens, look_ahead)
-        args.append(arg)
-    #consume ')'
-    look_ahead += 1
-    return (("VARIABLE_OP", op, args), look_ahead)
-    
-#derive tokens from the input tokens 
-def lexPrev(s: str):
-    tokens = []
-    i = 0
-    while i < len(s):
-        char = s[i]
-
-        #skip all whitespace
-        if char.isspace():
-            i += 1
-            continue
-        #if it's an open parentheses, then we have an expression
-        elif char == "(":
-            tokens.append(("LPAREN", char))
-            i += 1
-        #if it's a close parenthesis, we have the end of an expression
-        elif char == ")":
-            tokens.append(("RPAREN", char))
-            i += 1
-        #if it's a number, parse the full number
-        elif char.isdigit():
-            next_token = ""
-            #might be a float number
-            #TODO add support for floats
-            while i < len(s) and s[i].isdigit():
-                next_token += s[i]
-                i += 1
-            tokens.append(("NUMBER", next_token))
-        #otherwise it's one of the keywords
-        else:
-            next_token = ""
-            while i < len(s) and not s[i].isspace():
-                next_token += s[i]
-                i += 1
-            if next_token in VALID_OPS:
-                tokens.append(("OP", next_token))
-            else:
-                print(f"ERROR: UNKNOWN TOKEN \"{next_token}\"")
-                sys.exit(1)
-
-    return tokens
-    
 
 
