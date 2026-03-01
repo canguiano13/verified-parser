@@ -68,17 +68,12 @@ def scanTokens(s: str, start: int, current: int):
 
     #add EOF after all tokens are scanned
     #this will make parsing a little cleaner
-    addToken("EOF", tokens)
+    addToken("EOF", "", tokens)
     return tokens
 
 #add a token with both a type and value to the growing list of existing tokens
-def addTokenNonempty(token_type: str, token_val: str, tokens:list):
+def addToken(token_type: str, token_val:str, tokens: list):
     tokens.append((token_type, token_val))
-    return tokens
-#add a token with just a type to the growing list of existing tokens
-def addToken(token_type: str, tokens: list):
-    #empty token with just a value
-    tokens.append((token_type, ""))
     return tokens
 
 #scan a single token from the input string
@@ -91,24 +86,24 @@ def scanToken(s: str, start: int, current: int, tokens: list):
     if c == ' ' or c == '\r' or c == '\t' or c == '\n':
         return tokens, current
     elif c == '(': 
-        tokens = addToken("LEFT_PAREN", tokens)
+        tokens = addToken("LEFT_PAREN", "(", tokens)
     elif c == ')':
-        tokens = addToken("RIGHT_PAREN", tokens)
+        tokens = addToken("RIGHT_PAREN", ")", tokens)
     elif c == '.':
-        tokens = addToken("DOT", tokens)
+        tokens = addToken("DOT", ".", tokens)
     elif c == '-':
-        tokens = addToken("MINUS", tokens)
+        tokens = addToken("MINUS", "-", tokens)
     elif c == '+':
-        tokens = addToken("PLUS", tokens)
+        tokens = addToken("PLUS", "+", tokens)
     elif c == '*':
-        tokens = addToken("STAR", tokens)
+        tokens = addToken("STAR", "*", tokens)
     elif c == '/':
-        tokens = addToken("SLASH", tokens)
+        tokens = addToken("SLASH", "/", tokens)
     else:
         #check if its a number
         if (isDigit(c)):
             #if so, the start is current - 1 because we just consumed a number
-            tokens, current = number(s, current-1, current, tokens)
+            tokens, current = lex_number(s, current-1, current, tokens)
         #otherwise check if its a keyword
         elif (isAlpha(c)):
             #if so, again we just consumed a character
@@ -128,7 +123,7 @@ def advance(s: str, current: int):
 def match(s: str, current: int, expected: int):
     #reached end of input stream or next character is not the expected character
     if (isAtEnd(s, current) or s[current] != expected):
-        return false, current
+        return False, current
     return (True, current + 1)
 
 #lookahead but do not consume the next character
@@ -144,17 +139,24 @@ def peekNext(s: str, current: int):
     return s[current + 1]
 
 #consume a number literal
-def number(s: str, start: int, current: int, tokens: list):
+def lex_number(s: str, start: int, current: int, tokens: list):
+    #don't need to store the character, it'll be picked up later
+    #might have to just use a sequence when we convert to dafny and 
+    #gradually add characters to a result string one at a time?
     while(isDigit(peek(s, current))):
-          #don't need to store the character, it'll be picked up later
-          #might have to just use a sequence when we convert to dafny and gradually add characters to a result string one at a time?
           _, current = advance(s, current) 
 
-    #look for a fractional part and any remaining parts
-    #TODO starting on pg52 of the pdf
+    #check to see if it's a fractional number
+    if peek(s, current) == '.' and isDigit(peekNext(s, current)):
+        #if it is consume the dot
+        current += 1
+        #then add the fractional part
+        while(isDigit(peek(s, current))):
+              _, current = advance(s, current) 
 
     #add the token
-    return addTokenNonempty("NUMBER", s[start:current], tokens), current
+    #return the token and keep track of the index
+    return (addToken("NUMBER", s[start:current], tokens), current)
 
 def identifier(s: str, start: int, current: int, tokens: list):
     while(isAlphaNumeric(peek(s, current))):
