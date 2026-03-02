@@ -18,7 +18,7 @@ include "lexer.dfy"
 */
 
 //define the possible token types as an enum
-datatype TokenType = LEFT_PAREN | RIGHT_PAREN | DOT | MINS | PLUS | STAR | SLASH 
+datatype TokenType = LEFT_PAREN | RIGHT_PAREN | DOT | MINUS | PLUS | STAR | SLASH 
                      | UNARY_OP | BINARY_OP | VARIABLE_OP | NUMBER | EOF
 
 //define the possible operations that have identifiers longer than a single character
@@ -155,7 +155,7 @@ ensures current_idx < end_idx //<= |tokens| //<-- TODO do we want this to hold
 method number(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, end_idx: int)
 requires |tokens| > 0
 requires 0 <= current_idx < |tokens|
-//ensure that we consumed a single token, just the number
+//ensure that we consumed just the single token
 ensures end_idx == current_idx + 1
 {
     //no other parsing needed than this
@@ -163,15 +163,47 @@ ensures end_idx == current_idx + 1
     return Ok(parsed_num), current_idx + 1;
 }
 
-//TODO dispatch to one of the operation-parsing functions
+//TODO +, *, / operations are currently being lexed as PLUS, STAR, and SLASH due to the reference
+//could update lexer to just tag them all as variable ops
+//that would make this function unnecessary
+function isVariableOp(operationType: TokenType) : bool
+//requires ...
+//ensures ...
+{
+    operationType == TokenType.VARIABLE_OP ||
+    operationType == TokenType.PLUS ||
+    operationType == TokenType.STAR ||
+    operationType == TokenType.SLASH
+}
+
+//TODO dispatch to one of the operation-parsing functions based on token type
 method op(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, end_idx: int)
 requires |tokens| > 0
 requires 0 <= current_idx < |tokens|
+//TODO might have to require this
+//requires current_idx < |tokens| - 2
 //ensure that we consumed at least one token
 ensures end_idx > current_idx
-//TODO add ensures
 {
-    return Err("TODO implement function"), current_idx + 1;
+    var tokens := tokens;
+    var current_idx := current_idx;
+    //operation always starts with operation
+    var operation_type: TokenType := tokens[current_idx].token_type;
+    if operation_type == TokenType.MINUS{
+        result, end_idx := minus(tokens, current_idx);
+    }
+    else if operation_type == TokenType.UNARY_OP{
+        result, end_idx := unaryOp(tokens, current_idx);
+    }
+    else if operation_type == TokenType.BINARY_OP{
+        result, end_idx := binaryOp(tokens, current_idx);
+    }
+    else if isVariableOp(operation_type) {
+        result, end_idx := variableOp(tokens, current_idx);
+    }
+    else{
+        result, end_idx := Err("invalid operation"), current_idx + 1;
+    }
 
 }
 
