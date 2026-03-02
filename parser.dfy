@@ -65,42 +65,132 @@ ensures true
     assume{:axiom} false;
 }
 
-//unit tests for tagging
-method testTag()
-requires true
-ensures true
-{
-    //TODO implement
-    assume{:axiom} false;
-
-}
-
 //-------------------------------PARSING--------------------------------
-
 //transform a set of tokens into an AST
-//returns Failure if expression is invalid
-    //e.g. parentheses don't match
-    //e.g. wrong number of operands for a given operation
-    //etc
-method parse(tokens: seq<Token>) returns (ast: Expr)
-requires true
-ensures true
+//returns Err if expression is invalid 
+//otherwise returns Ok containing the AST root
+method parse(tokens: seq<Token>) returns (result: Result<Expr>)
+//preconditions
+//list of tokens should be nonempty
+requires |tokens| > 0
+//postconditions
+//TODO add ensures...
+//TODO the index for the list should be at the end of the list, indicating all tokens were parsed
+//TODO should guarantee that the last token is EOF and was parsed
+//TODO should guarantee that all of the tokens were consumed into the tree
 {
-    //TODO implement
-    assume{:axiom} false;
+    
+    //parse starting at first token
+    var ast: Result<Expr>, current_idx: int := expr(tokens, 0);
+
+    //last token should be the EOF token
+    //TODO fix these lines once parsing is done
+    //assert 0 <= current_idx < |tokens|;
+    //assert current_idx == |tokens| - 1;
+
+    //make sure that after parsing ends, the last token is EOF
+    assume{:axiom} 0 <= current_idx < |tokens|;
+    assume{:axiom} current_idx == |tokens| - 1;
+    if tokens[current_idx].token_type == TokenType.EOF{
+        return Err("unexpected end of file");
+    }
+
+    current_idx := current_idx + 1;
+    assert current_idx == |tokens|;
+    return ast;
+}
+
+//parse an expression
+method expr(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, end_idx: int)
+requires |tokens| > 0
+requires 0 <= current_idx < |tokens|
+ensures end_idx > current_idx
+//TODO add ensures
+{
+    //start with the first token, should be 
+    var first_token: Token := tokens[0];
+    var token_type := first_token.token_type;
+    var token_val := first_token.token_value;
+
+    return Err("TODO implement function"), current_idx + 1;
+
+    //parse a number token
+    if token_type == TokenType.NUMBER{
+        //TODO implement number() function
+        return Err("TODO implement number function"), current_idx + 1;
+    }
+    //parse some operation
+    else if token_type == TokenType.LEFT_PAREN{
+        return Err("TODO implement op function"), current_idx + 1;
+
+    }
+    //unrecognized token
+    else{
+        return Err("unrecognized expression"), current_idx + 1;
+    }
+ 
+}
+
+//TODO parse a single number token with token at index current_idx
+method number(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, end_idx: int)
+requires |tokens| > 0
+requires 0 <= current_idx < |tokens|
+//ensure that we consumed at least one token
+ensures end_idx > current_idx
+{
+    return Err("TODO implement function"), current_idx + 1;
+}
+
+//TODO dispatch to one of the operation-parsing functions
+method op(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, end_idx: int)
+requires |tokens| > 0
+requires 0 <= current_idx < |tokens|
+//ensure that we consumed at least one token
+ensures end_idx > current_idx
+//TODO add ensures
+{
+    return Err("TODO implement function"), current_idx + 1;
 
 }
 
-//unit tests for parsing
-method testParse()
-requires true
-ensures true
+//TODO parse a single unary operation starting at token with index current_idx
+method unaryOp(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, end_idx: int)
+requires |tokens| > 0
+requires 0 <= current_idx < |tokens|
+ensures end_idx > current_idx
 {
-    //TODO implement
-    assume(false);
-assume{:axiom} false;
-
+    return Err("TODO implement function"), current_idx + 1;
 }
+//TODO parse a single binary operation starting at token with index current_idx
+method binaryOp(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, end_idx: int)
+requires |tokens| > 0
+requires 0 <= current_idx < |tokens|
+ensures end_idx > current_idx
+{
+    return Err("TODO implement function"), current_idx + 1;
+}
+//TODO parse a single variable-param operation starting at token with index current_idx
+method variableOp(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, end_idx: int)
+requires |tokens| > 0
+requires 0 <= current_idx < |tokens|
+ensures end_idx > current_idx
+{
+    return Err("TODO implement function"), current_idx + 1;
+}
+
+//TODO parse an operation using the minus operator
+//either has to be subtraction or negation
+method minus(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, end_idx: int)
+requires |tokens| > 0
+requires 0 <= current_idx < |tokens|
+ensures end_idx > current_idx
+//TODO add ensures
+{
+    return Err("TODO implement function"), current_idx + 1;
+}
+
+
+
 
 method main()
 requires true
