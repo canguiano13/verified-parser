@@ -87,10 +87,10 @@ requires |tokens| > 0
     //TODO fix these lines once parsing is done
     //assert 0 <= current_idx < |tokens|;
     //assert current_idx == |tokens| - 1;
-
-    //make sure that after parsing ends, the last token is EOF
     assume{:axiom} 0 <= current_idx < |tokens|;
     assume{:axiom} current_idx == |tokens| - 1;
+
+    //make sure that after parsing ends, the last token is EOF
     if tokens[current_idx].token_type == TokenType.EOF{
         return Err("unexpected end of file");
     }
@@ -100,35 +100,54 @@ requires |tokens| > 0
     return ast;
 }
 
+//safely advance the index to ensure that it has not yet reached the end of the list
+// method advance_idx(tokens: seq, start_idx: int) returns (end_idx: int)
+// requires 0 < start_idx < |tokens|
+// ensures start_idx <= |tokens| - 1
+// {
+//     var start_idx := start_idx + 1;
+
+//     var idx_upper_bound := |tokens| - 1;
+
+//     end_idx := start_idx; 
+// }
+
 //parse an expression
 method expr(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, end_idx: int)
 requires |tokens| > 0
 requires 0 <= current_idx < |tokens|
-ensures end_idx > current_idx
+ensures current_idx < end_idx //<= |tokens| //<-- TODO do we want this to hold
 //TODO add ensures
 {
-    //start with the first token, should be 
-    var first_token: Token := tokens[0];
-    var token_type := first_token.token_type;
-    var token_val := first_token.token_value;
+    //shadow current_idx
+    var current_idx := current_idx;
 
-    return Err("TODO implement function"), current_idx + 1;
+    //get start at the next token
+    var next_token: Token := tokens[0];
+    var token_type := next_token.token_type;
+    var token_val := next_token.token_value;
 
-    //parse a number token
+    //expression can be just a number
     if token_type == TokenType.NUMBER{
-        //TODO implement number() function
-        return Err("TODO implement number function"), current_idx + 1;
+        result, end_idx := number(tokens, current_idx);
     }
     //parse some operation
     else if token_type == TokenType.LEFT_PAREN{
-        return Err("TODO implement op function"), current_idx + 1;
+        //consume left parenthesis to get to operation
+        current_idx := current_idx + 1;
 
+        //will need this to pass
+        //TODO need to prove that current_idx + 1 <= |tokens|
+        //maybe use the advance_idx function somehow?
+        assume{:axiom} current_idx < |tokens|;
+        assert current_idx < |tokens|;
+
+        result, end_idx := op(tokens, current_idx);
     }
     //unrecognized token
     else{
         return Err("unrecognized expression"), current_idx + 1;
     }
- 
 }
 
 //TODO parse a single number token with token at index current_idx
@@ -138,6 +157,7 @@ requires 0 <= current_idx < |tokens|
 //ensure that we consumed at least one token
 ensures end_idx > current_idx
 {
+
     return Err("TODO implement function"), current_idx + 1;
 }
 
