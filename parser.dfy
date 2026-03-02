@@ -1,3 +1,6 @@
+include "test.dfy"
+include "lexer.dfy"
+
 /* more or less the grammar we're parsing
 
 <P>             ::= <expr>
@@ -22,15 +25,22 @@ datatype TokenType = LEFT_PAREN | RIGHT_PAREN | DOT | MINS | PLUS | STAR | SLASH
 datatype BuiltInOp = ABS | SQRT | CEIL | MODULO | EXPT | MIN | MAX
 
 //tokens are specific type of tuples
-datatype Token = Pair(token_type:TokenType, token_val:string)
+datatype Token = Pair(token_type:TokenType, token_value:string)
 
 //nodes of the AST come from the grammar
-datatype Expr = Num(value: string)
+datatype Expr = Number(value: string)
               | UnaryOp(op: string, arg: Expr)
               | BinaryOp(op:string, arg1: Expr, arg2: Expr)
               | VariableOp(op: string, argList: seq<Expr>)
 
+//result datatype will either allow us to store a value
+//or it will produce an error/failure
+//has to be generic so we can store Expr or Token
+datatype Result<T> = Ok(data: T) | Err(error: string)
 
+
+
+//------------------------LEXING-------------------------------
 //transform user input into a set of tokens
 method lex(s: string) //returns (tokens: seq<string>)
 requires true
@@ -44,18 +54,9 @@ assume{:axiom} false;
 
 }
 
-//unit tests for lexing
-method testLex()
-requires true
-ensures true
-{
-    //TODO implement
-    assume{:axiom} false;
-
-}
-
 
 //add type tags to all of the tokens before passing to parser
+//TODO probably remove this, i don't actually think we need this.
 method tag(tokens: seq<string>) returns (tagged_tokens: seq<Token>)
 requires true
 ensures true
