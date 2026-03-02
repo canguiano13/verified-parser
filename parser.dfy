@@ -150,15 +150,17 @@ ensures current_idx < end_idx //<= |tokens| //<-- TODO do we want this to hold
     }
 }
 
-//TODO parse a single number token with token at index current_idx
+//consume the token at the current_idx
+//this token represents a number
 method number(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, end_idx: int)
 requires |tokens| > 0
 requires 0 <= current_idx < |tokens|
-//ensure that we consumed at least one token
-ensures end_idx > current_idx
+//ensure that we consumed a single token, just the number
+ensures end_idx == current_idx + 1
 {
-
-    return Err("TODO implement function"), current_idx + 1;
+    //no other parsing needed than this
+    var parsed_num: Expr := Number(tokens[current_idx].token_value);
+    return Ok(parsed_num), current_idx + 1;
 }
 
 //TODO dispatch to one of the operation-parsing functions
@@ -208,8 +210,6 @@ ensures end_idx > current_idx
 {
     return Err("TODO implement function"), current_idx + 1;
 }
-
-
 
 
 method main()
