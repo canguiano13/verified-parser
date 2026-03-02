@@ -1,17 +1,47 @@
-include "fileio.dfy"
+/* more or less the grammar we're parsing
 
-//need to define a tuple type that hold (token_type, token_value) pairs
-datatype Pair = Pair(fst:string, snd:string)
+<P>             ::= <expr>
+<expr>          ::= <unary-op> | <binary-op> | <variable-op> | <num>
+<expr-list>     ::= <expr> <expr-list> | ε
+<unary-op>      ::= (<unary> <expr>)
+<binary-op>     ::= (<binary> <expr> <expr>)
+<variable-op>   ::= (<variable> <expr> <expr> <expr-list>)
+<unary>         ::= abs | sqrt | ceil | -
+<binary>        ::= modulo | expt
+<variable>      ::= min | max | + | * | - | /
+<num>           ::= (- <digits>) | <digits>
+<digits>        ::= <digit> | <digit> <digits>
+<digit>         ::= 1 | 2 | .. | 9
+*/
+
+//define the possible token types as an enum
+datatype TokenType = LEFT_PAREN | RIGHT_PAREN | DOT | MINS | PLUS | STAR | SLASH 
+                     | UNARY_OP | BINARY_OP | VARIABLE_OP | NUMBER | EOF
+
+//define the possible operations that have identifiers longer than a single character
+datatype BuiltInOp = ABS | SQRT | CEIL | MODULO | EXPT | MIN | MAX
+
+//tokens are specific type of tuples
+datatype Token = Pair(token_type:TokenType, token_val:string)
+
+//nodes of the AST come from the grammar
+datatype Expr = Num(value: string)
+              | UnaryOp(op: string, arg: Expr)
+              | BinaryOp(op:string, arg1: Expr, arg2: Expr)
+              | VariableOp(op: string, argList: seq<Expr>)
+
 
 //transform user input into a set of tokens
-//replace '(' with ' ( '
-//replace ')' with ' ) '
 method lex(s: string) //returns (tokens: seq<string>)
 requires true
 ensures true
 {
     //TODO implement
     assume(false);
+
+    assume(false);
+assume{:axiom} false;
+
 }
 
 //unit tests for lexing
@@ -20,17 +50,18 @@ requires true
 ensures true
 {
     //TODO implement
-    assume(false);
+    assume{:axiom} false;
+
 }
 
 
 //add type tags to all of the tokens before passing to parser
-method tag(tokens: seq<string>) returns (tagged_tokens: seq<Pair>)
+method tag(tokens: seq<string>) returns (tagged_tokens: seq<Token>)
 requires true
 ensures true
 {
     //TODO implement
-    assume(false);
+    assume{:axiom} false;
 }
 
 //unit tests for tagging
@@ -39,21 +70,24 @@ requires true
 ensures true
 {
     //TODO implement
-    assume(false);
+    assume{:axiom} false;
+
 }
 
+//-------------------------------PARSING--------------------------------
 
 //transform a set of tokens into an AST
 //returns Failure if expression is invalid
     //e.g. parentheses don't match
     //e.g. wrong number of operands for a given operation
     //etc
-method parse(tokens: seq<string>) returns (ast: seq<Pair>)
+method parse(tokens: seq<Token>) returns (ast: Expr)
 requires true
 ensures true
 {
     //TODO implement
-    assume(false);
+    assume{:axiom} false;
+
 }
 
 //unit tests for parsing
@@ -63,6 +97,8 @@ ensures true
 {
     //TODO implement
     assume(false);
+assume{:axiom} false;
+
 }
 
 method main()
