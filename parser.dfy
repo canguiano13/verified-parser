@@ -1,5 +1,5 @@
-include "test.dfy"
-include "lexer.dfy"
+//#include "test.dfy" 
+//include "lexer.dfy" //TODO will uncomment these later once the files are unified
 
 /* more or less the grammar we're parsing
 
