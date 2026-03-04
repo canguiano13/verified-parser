@@ -117,6 +117,7 @@ method expr(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>,
 requires |tokens| > 0
 requires 0 <= current_idx < |tokens|
 ensures current_idx < end_idx //<= |tokens| //<-- TODO do we want this to hold
+decreases |tokens| - current_idx //think this fixes the termination issue
 //TODO add ensures
 {
     //shadow current_idx
@@ -157,6 +158,7 @@ requires |tokens| > 0
 requires 0 <= current_idx < |tokens|
 //ensure that we consumed just the single token
 ensures end_idx == current_idx + 1
+decreases |tokens| - current_idx 
 {
     //no other parsing needed than this
     var parsed_num: Expr := Number(tokens[current_idx].token_value);
@@ -184,22 +186,26 @@ requires 0 <= current_idx < |tokens|
 //requires current_idx < |tokens| - 2
 //ensure that we consumed at least one token
 ensures end_idx > current_idx
+decreases |tokens| - current_idx
 {
     var tokens := tokens;
     var current_idx := current_idx;
-    //operation always starts with operation
+
+    //extract two parts parts of th
     var operation_type: TokenType := tokens[current_idx].token_type;
+    var operation_value: string := tokens[current_idx].token_value;
+
     if operation_type == TokenType.MINUS{
         result, end_idx := minus(tokens, current_idx);
     }
     else if operation_type == TokenType.UNARY_OP{
-        result, end_idx := unaryOp(tokens, current_idx);
+        result, end_idx := unaryOp(tokens, current_idx, operation_value);
     }
     else if operation_type == TokenType.BINARY_OP{
-        result, end_idx := binaryOp(tokens, current_idx);
+        result, end_idx := binaryOp(tokens, current_idx, operation_value);
     }
     else if isVariableOp(operation_type) {
-        result, end_idx := variableOp(tokens, current_idx);
+        result, end_idx := variableOp(tokens, current_idx, operation_value);
     }
     else{
         result, end_idx := Err("invalid operation"), current_idx + 1;
@@ -208,26 +214,42 @@ ensures end_idx > current_idx
 }
 
 //TODO parse a single unary operation starting at token with index current_idx
-method unaryOp(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, end_idx: int)
+method unaryOp(tokens: seq<Token>, current_idx: int, operation: string) returns (result: Result<Expr>, end_idx: int)
 requires |tokens| > 0
 requires 0 <= current_idx < |tokens|
 ensures end_idx > current_idx
+decreases |tokens| - current_idx //i think this fixes the termination issue?
 {
-    return Err("TODO implement function"), current_idx + 1;
+    //parse the expression after the operator
+    var arg1, current_idx := expr(tokens, current_idx);
+
+    //check if the expression resulted in an error or was successfully parsed
+    var parsed_unary_op := match arg1{
+        case Ok(parsed_subexpr)=> Ok(UnaryOp(operation, parsed_subexpr))
+        case Err => arg1
+    };
+
+    //consume right parenthesis
+    current_idx := current_idx + 1;
+
+    //return parsed unary op
+    result, end_idx := parsed_unary_op, current_idx;
 }
 //TODO parse a single binary operation starting at token with index current_idx
-method binaryOp(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, end_idx: int)
+method binaryOp(tokens: seq<Token>, current_idx: int, operation: string) returns (result: Result<Expr>, end_idx: int)
 requires |tokens| > 0
 requires 0 <= current_idx < |tokens|
 ensures end_idx > current_idx
+decreases |tokens| - current_idx
 {
-    return Err("TODO implement function"), current_idx + 1;
+     return Err("TODO implement function"), current_idx + 1;
 }
 //TODO parse a single variable-param operation starting at token with index current_idx
-method variableOp(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, end_idx: int)
+method variableOp(tokens: seq<Token>, current_idx: int, operation: string) returns (result: Result<Expr>, end_idx: int)
 requires |tokens| > 0
 requires 0 <= current_idx < |tokens|
 ensures end_idx > current_idx
+decreases |tokens| - current_idx
 {
     return Err("TODO implement function"), current_idx + 1;
 }
@@ -262,5 +284,4 @@ ensures true
     //maybe we can do this and then add some python interface that extends the functionality like he was talking about in lecture
     //I would imagine that we can create some python file like main.py, then import the needed function
     //from the transpiled parser.py file.
-    assume(false);
 }
