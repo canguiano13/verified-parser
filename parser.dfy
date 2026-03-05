@@ -31,7 +31,7 @@ datatype Token = Pair(token_type:TokenType, token_value:string)
 datatype Expr = Number(value: string)
               | UnaryOp(op: string, arg: Expr)
               | BinaryOp(op:string, arg1: Expr, arg2: Expr)
-              | VariableOp(op: string, argList: seq<Expr>)
+              | VariableOp(op: string, arg1: Expr, arg2: Expr, argList: seq<Expr>)
 
 //result datatype will either allow us to store a value
 //or it will produce an error/failure
@@ -221,13 +221,15 @@ ensures end_idx > current_idx
 decreases |tokens| - current_idx //i think this fixes the termination issue?
 {
     //parse the expression after the operator
-    var arg1, current_idx := expr(tokens, current_idx);
+    var parsed_subexpr, current_idx := expr(tokens, current_idx);
 
-    //check if the expression resulted in an error or was successfully parsed
-    var parsed_unary_op := match arg1{
-        case Ok(parsed_subexpr)=> Ok(UnaryOp(operation, parsed_subexpr))
-        case Err => arg1
-    };
+    //check if parsing the subexpression fails
+    if parsed_subexpr.Err?{
+        return parsed_subexpr, current_idx;
+    }
+
+    //else successfully parsed
+    var parsed_unary_op := Ok(UnaryOp(operation, parsed_subexpr.data));
 
     //consume right parenthesis
     current_idx := current_idx + 1;
@@ -235,6 +237,7 @@ decreases |tokens| - current_idx //i think this fixes the termination issue?
     //return parsed unary op
     result, end_idx := parsed_unary_op, current_idx;
 }
+
 //TODO parse a single binary operation starting at token with index current_idx
 method binaryOp(tokens: seq<Token>, current_idx: int, operation: string) returns (result: Result<Expr>, end_idx: int)
 requires |tokens| > 0
@@ -242,32 +245,32 @@ requires 0 <= current_idx < |tokens|
 ensures end_idx > current_idx
 decreases |tokens| - current_idx
 {
+    var parsed_subexpr_1: Result<Expr>, parsed_subexpr_2: Result<Expr>, current_idx: int;
+
     //parse the first expression after the operator
-    var arg1, current_idx := expr(tokens, current_idx);
+    parsed_subexpr_1, current_idx := expr(tokens, current_idx);
+    //return error immediately if the subexpresion cannot be parsed
+    if parsed_subexpr_1.Err?{
+        return parsed_subexpr_1, current_idx;
+    }
 
     //parse the second expression after the operator
-    var arg2, current_idx := expr(tokens, current_idx);
+    parsed_subexpr_2, current_idx := expr(tokens, current_idx);
+    //return error immediately if second subexpression cannot be parsed
+    if parsed_subexpr_2.Err?{
+        return parsed_subexpr_2, current_idx;
+    }
 
-    //check if either expression resulted in an error or was successfully parsed
-    var parsed_subexpr_1:= match arg1{
-        case Ok(parsed_subexpr)=> Ok(UnaryOp(operation, parsed_subexpr))
-        case Err => arg1
-    };
-
-    var parsed_subexpr_2 := match arg2{
-        case Ok(parsed_subexpr)=> Ok(UnaryOp(operation, parsed_subexpr))
-        case Err => arg2
-    };
-
-    //if both were parsed successfully, make a binary operation
-    var parsed_binary_op := BinaryOp(operator, parsed_subexpr1, parsed_subexpr2);
+    //make a binary operation using the current operation
+    var parsed_binary_op := BinaryOp(operation, parsed_subexpr_1.data, parsed_subexpr_2.data);
 
     //consume right parenthesis
     current_idx := current_idx + 1;
 
-    //return parsed unary binary operation
+    //return parsed binary operation
     result, end_idx := Ok(parsed_binary_op), current_idx;
 }
+
 //TODO parse a single variable-param operation starting at token with index current_idx
 method variableOp(tokens: seq<Token>, current_idx: int, operation: string) returns (result: Result<Expr>, end_idx: int)
 requires |tokens| > 0
@@ -275,29 +278,38 @@ requires 0 <= current_idx < |tokens|
 ensures end_idx > current_idx
 decreases |tokens| - current_idx
 {
-    //parse first two expressions after the operator
-    var arg1: Result<Expr>, arg2: Result<Expr>, current_idx: int; 
-    arg1, current_idx := expr(tokens, current_idx);
-    arg2, current_idx := expr(tokens, current_idx);
+    var parsed_subexpr_1: Result<Expr>, parsed_subexpr_2: Result<Expr>, current_idx: int; 
+
+    //parse two required expressions after operator
+    parsed_subexpr_1, current_idx := expr(tokens, current_idx);
+    if parsed_subexpr_1.Err?{
+        return parsed_subexpr_1, current_idx;
+    }
+
+    parsed_subexpr_2, current_idx := expr(tokens, current_idx);
+    if parsed_subexpr_2.Err?{
+        return parsed_subexpr_2, current_idx;
+    }
 
     //populate list of any remaining arguments
-    var argList: seq<Expr> := [];
+    var subexprList: seq<Expr> := [];
     //TODO figure out this loop
     // while false
     // invariant false
     // {
     //     //parse remaining args
+    //     //look ahead to next token
+    //     //if it is a RIGHT_PARENT, end of expression. loop terminates
+    //     //otherwise, keep parsing subexpressions and adding to list
     // }
 
-    var parsed_variable_op := VariableOp(operator, arg1, arg2, argList);
+    var parsed_variable_op := VariableOp(operation, parsed_subexpr_1.data, parsed_subexpr_2.data, subexprList);
 
     //consume right parenthesis
-    var current_idx := current_idx + 1;
+    current_idx := current_idx + 1;
 
-    //return parsed unary binary operation
-    result, end_idx := Ok(parsed_binary_op), current_idx;
-
-    return Err("TODO implement function"), current_idx + 1;
+    //return parsed variable-argument operation
+    result, end_idx := Ok(parsed_variable_op), current_idx;
 }
 
 //TODO parse an operation using the minus operator
@@ -306,19 +318,44 @@ method minus(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>
 requires |tokens| > 0
 requires 0 <= current_idx < |tokens|
 ensures end_idx > current_idx
+decreases |tokens| - current_idx
 //TODO add ensures
 {
-    //check if it is a unary op or
-    //parse first two expressions after the operator
-    var arg1: Result<Expr>, arg2: Result<Expr>, current_idx: int; 
-    arg1, current_idx := expr(tokens, current_idx);
-    arg2, current_idx := expr(tokens, current_idx);
+    var parsed_subexpr_1: Result<Expr>, current_idx: int; 
+    var operation := "-";
 
+    //check if it is a unary op or
+    //parse required subexpr after operator
+    parsed_subexpr_1, current_idx := expr(tokens, current_idx);
+    if parsed_subexpr_1.Err?{
+        return parsed_subexpr_1, current_idx;
+    }
+    
     //peek ahead to the next token to see if it's a number or right parenthesis
     //need to check that we're not yet at the end of the list already to do a safe peek
+    //peek()
     
+    var is_unary_op: bool;
+    is_unary_op := true; //TODO replace with a condition checking if the token from peek() is a RIGHT_PAREN
+
+    //if it's a unary expression
+    if is_unary_op{ 
+        //consume right parenthesis
+        current_idx := current_idx + 1;
+
+        return Ok(UnaryOp(operation, parsed_subexpr_1.data)), current_idx;
+    }
+
+    //otherwise it's a variable-argument expression
+    //parse the other required subexpression
+    var parsed_subexpr_2: Result<Expr>;
+    parsed_subexpr_2, current_idx := expr(tokens, current_idx);
+    if parsed_subexpr_2.Err?{
+        return parsed_subexpr_2, current_idx;
+    }
+
     //populate list of any remaining arguments
-    var argList: seq<Expr> := [];
+    var subexprList: seq<Expr> := [];
     //TODO figure out this loop
     // while false
     // invariant false
@@ -326,17 +363,10 @@ ensures end_idx > current_idx
     //     //parse remaining args
     // }
 
-    
-    var parsed_unary_op := UnaryOp(operator, arg1);
+    //
 
-    var parsed_variable_op := VariableOp(operator, arg1, arg2, argList);
-
-    //consume right parenthesis
-    current_idx := current_idx + 1;
-
-    //return parsed unary binary operation
-    //result, end_idx := Ok(parsed_binary_op), current_idx;
-    return Err("TODO implement function"), current_idx + 1;
+    var parsed_variable_op := VariableOp(operation, parsed_subexpr_1.data, parsed_subexpr_2.data, subexprList);
+    return Ok(parsed_variable_op), current_idx;
 }
 
 
