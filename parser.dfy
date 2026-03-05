@@ -242,7 +242,31 @@ requires 0 <= current_idx < |tokens|
 ensures end_idx > current_idx
 decreases |tokens| - current_idx
 {
-     return Err("TODO implement function"), current_idx + 1;
+    //parse the first expression after the operator
+    var arg1, current_idx := expr(tokens, current_idx);
+
+    //parse the second expression after the operator
+    var arg2, current_idx := expr(tokens, current_idx);
+
+    //check if either expression resulted in an error or was successfully parsed
+    var parsed_subexpr_1:= match arg1{
+        case Ok(parsed_subexpr)=> Ok(UnaryOp(operation, parsed_subexpr))
+        case Err => arg1
+    };
+
+    var parsed_subexpr_2 := match arg2{
+        case Ok(parsed_subexpr)=> Ok(UnaryOp(operation, parsed_subexpr))
+        case Err => arg2
+    };
+
+    //if both were parsed successfully, make a binary operation
+    var parsed_binary_op := BinaryOp(operator, parsed_subexpr1, parsed_subexpr2);
+
+    //consume right parenthesis
+    current_idx := current_idx + 1;
+
+    //return parsed unary binary operation
+    result, end_idx := Ok(parsed_binary_op), current_idx;
 }
 //TODO parse a single variable-param operation starting at token with index current_idx
 method variableOp(tokens: seq<Token>, current_idx: int, operation: string) returns (result: Result<Expr>, end_idx: int)
@@ -251,6 +275,28 @@ requires 0 <= current_idx < |tokens|
 ensures end_idx > current_idx
 decreases |tokens| - current_idx
 {
+    //parse first two expressions after the operator
+    var arg1: Result<Expr>, arg2: Result<Expr>, current_idx: int; 
+    arg1, current_idx := expr(tokens, current_idx);
+    arg2, current_idx := expr(tokens, current_idx);
+
+    //populate list of any remaining arguments
+    var argList: seq<Expr> := [];
+    //TODO figure out this loop
+    // while false
+    // invariant false
+    // {
+    //     //parse remaining args
+    // }
+
+    var parsed_variable_op := VariableOp(operator, arg1, arg2, argList);
+
+    //consume right parenthesis
+    var current_idx := current_idx + 1;
+
+    //return parsed unary binary operation
+    result, end_idx := Ok(parsed_binary_op), current_idx;
+
     return Err("TODO implement function"), current_idx + 1;
 }
 
@@ -262,6 +308,34 @@ requires 0 <= current_idx < |tokens|
 ensures end_idx > current_idx
 //TODO add ensures
 {
+    //check if it is a unary op or
+    //parse first two expressions after the operator
+    var arg1: Result<Expr>, arg2: Result<Expr>, current_idx: int; 
+    arg1, current_idx := expr(tokens, current_idx);
+    arg2, current_idx := expr(tokens, current_idx);
+
+    //peek ahead to the next token to see if it's a number or right parenthesis
+    //need to check that we're not yet at the end of the list already to do a safe peek
+    
+    //populate list of any remaining arguments
+    var argList: seq<Expr> := [];
+    //TODO figure out this loop
+    // while false
+    // invariant false
+    // {
+    //     //parse remaining args
+    // }
+
+    
+    var parsed_unary_op := UnaryOp(operator, arg1);
+
+    var parsed_variable_op := VariableOp(operator, arg1, arg2, argList);
+
+    //consume right parenthesis
+    current_idx := current_idx + 1;
+
+    //return parsed unary binary operation
+    //result, end_idx := Ok(parsed_binary_op), current_idx;
     return Err("TODO implement function"), current_idx + 1;
 }
 
@@ -270,18 +344,5 @@ method main()
 requires true
 ensures true
 {
-    //so..funny story. dafny doesn't actually support taking in input or producing simple output.
-    //from the Dafny documentation FAQ
-    /*
-        Question
-        How do I read a file as a string?
-    
-        Answer
-        You can’t in pure Dafny. Not yet. Such a capability will eventually be part of a standard IO library.
-
-        What you can do is to write such a function in another language, say Java, and then use it in Dafny by extern declarations.
-    */
-    //maybe we can do this and then add some python interface that extends the functionality like he was talking about in lecture
-    //I would imagine that we can create some python file like main.py, then import the needed function
-    //from the transpiled parser.py file.
+    //TODO add something here maybe?
 }
