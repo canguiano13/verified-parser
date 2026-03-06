@@ -3,15 +3,14 @@ include "test.dfy"
 
 /* more or less the grammar we're parsing
 <P>             ::= <expr>
-<expr>          ::= <unary-op> | <binary-op> | <variable-op> | <num>
-<expr-list>     ::= <expr> <expr-list> | ε
+<expr>          ::= <unary-op> | <binary-op> | <variable-op> | <digits>
 <unary-op>      ::= (<unary> <expr>)
 <binary-op>     ::= (<binary> <expr> <expr>)
 <variable-op>   ::= (<variable> <expr> <expr-list>)
-<unary>         ::= abs | sqrt | ceil | -
+<expr-list>     ::= <expr> <expr-list> | ε
+<unary>         ::= abs | sqrt | ceil
 <binary>        ::= modulo | expt
 <variable>      ::= min | max | + | * | - | /
-<num>           ::= (- <digits>) | <digits>
 <digits>        ::= <digit> | <digit> <digits>
 <digit>         ::= 1 | 2 | .. | 9
 */
@@ -36,6 +35,30 @@ datatype Expr = Number(value: string)
 //or it will produce an error/failure
 //has to be generic so we can store Expr or Token
 datatype Result<T> = Ok(data: T) | Err(error: string)
+
+
+//Helper functions
+function isUnaryOp(operationType: TokenType, operationValue: string) : bool
+{
+    operationType == TokenType.UNARY_OP &&
+    (operationValue == "abs" || operationValue == "sqrt" || operationValue == "ceil")
+}
+function isBinaryOp(operationType: TokenType, operationValue: string) : bool
+{
+    operationType == TokenType.BINARY_OP &&
+    (operationValue == "modulo" || operationValue == "expt")
+}
+
+function isVariableOp(operationType: TokenType) : bool
+{
+    operationType == TokenType.VARIABLE_OP ||
+    operationType == TokenType.PLUS ||
+    operationType == TokenType.STAR ||
+    operationType == TokenType.SLASH ||
+    operationType == TokenType.MINUS
+}
+
+
 
 //-------------------------------PARSING--------------------------------
 //transform a set of tokens into an AST
@@ -102,7 +125,6 @@ decreases |tokens| - current_idx //think this fixes the termination issue
         //TODO need to prove that current_idx + 1 <= |tokens|
         //maybe use the advance_idx function somehow?
         assume{:axiom} current_idx < |tokens|;
-
         result, end_idx := op(tokens, current_idx);
     }
     //unrecognized token
@@ -129,17 +151,6 @@ decreases |tokens| - current_idx
     return Ok(parsed_num), current_idx + 1;
 }
 
-//+, *, / operations are currently being lexed as PLUS, STAR, and SLASH due to the reference
-//could update lexer to just tag them all as variable ops
-//that would make this function unnecessary
-function isVariableOp(operationType: TokenType) : bool
-{
-    operationType == TokenType.VARIABLE_OP ||
-    operationType == TokenType.PLUS ||
-    operationType == TokenType.STAR ||
-    operationType == TokenType.SLASH ||
-    operationType == TokenType.MINUS
-}
 
 //TODO dispatch to one of the operation-parsing functions based on token type
 method op(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, end_idx: int)
