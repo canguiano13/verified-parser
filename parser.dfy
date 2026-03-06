@@ -1,14 +1,13 @@
-//#include "test.dfy" 
+include "test.dfy" 
 //include "lexer.dfy" //TODO will uncomment these later once the files are unified
 
 /* more or less the grammar we're parsing
-
 <P>             ::= <expr>
 <expr>          ::= <unary-op> | <binary-op> | <variable-op> | <num>
 <expr-list>     ::= <expr> <expr-list> | ε
 <unary-op>      ::= (<unary> <expr>)
 <binary-op>     ::= (<binary> <expr> <expr>)
-<variable-op>   ::= (<variable> <expr> <expr> <expr-list>)
+<variable-op>   ::= (<variable> <expr> <expr-list>)
 <unary>         ::= abs | sqrt | ceil | -
 <binary>        ::= modulo | expt
 <variable>      ::= min | max | + | * | - | /
@@ -31,7 +30,7 @@ datatype Token = Pair(token_type:TokenType, token_value:string)
 datatype Expr = Number(value: string)
               | UnaryOp(op: string, arg: Expr)
               | BinaryOp(op:string, arg1: Expr, arg2: Expr)
-              | VariableOp(op: string, arg1: Expr, arg2: Expr, argList: seq<Expr>)
+              | VariableOp(op: string, arg1: Expr, argList: seq<Expr>)
 
 //result datatype will either allow us to store a value
 //or it will produce an error/failure
@@ -57,7 +56,7 @@ requires |tokens| > 0
     var ast: Result<Expr>, current_idx: int := expr(tokens, 0);
 
     //last token should be the EOF token
-    //TODO fix these lines once parsing is done
+    //TODO prove these lines once parsing is done
     //assert 0 <= current_idx < |tokens|;
     //assert current_idx == |tokens| - 1;
     assume{:axiom} 0 <= current_idx < |tokens|;
@@ -103,7 +102,6 @@ decreases |tokens| - current_idx //think this fixes the termination issue
         //TODO need to prove that current_idx + 1 <= |tokens|
         //maybe use the advance_idx function somehow?
         assume{:axiom} current_idx < |tokens|;
-        assert current_idx < |tokens|;
 
         result, end_idx := op(tokens, current_idx);
     }
@@ -116,10 +114,14 @@ decreases |tokens| - current_idx //think this fixes the termination issue
 //consume the token at the current_idx
 //this token represents a number
 method number(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, end_idx: int)
+//should have at least one token to consume
 requires |tokens| > 0
+//our current idx should not be at the end of the list of tokens
 requires 0 <= current_idx < |tokens|
-//ensure that we consumed just the single token
+//ensure that we consumed just one single token since it is a number
 ensures end_idx == current_idx + 1
+//ensure that we
+ensures end_idx <= |tokens| + 1
 decreases |tokens| - current_idx 
 {
     //no other parsing needed than this
@@ -127,17 +129,16 @@ decreases |tokens| - current_idx
     return Ok(parsed_num), current_idx + 1;
 }
 
-//TODO +, *, / operations are currently being lexed as PLUS, STAR, and SLASH due to the reference
+//+, *, / operations are currently being lexed as PLUS, STAR, and SLASH due to the reference
 //could update lexer to just tag them all as variable ops
 //that would make this function unnecessary
 function isVariableOp(operationType: TokenType) : bool
-//requires ...
-//ensures ...
 {
     operationType == TokenType.VARIABLE_OP ||
     operationType == TokenType.PLUS ||
     operationType == TokenType.STAR ||
-    operationType == TokenType.SLASH
+    operationType == TokenType.SLASH ||
+    operationType == TokenType.MINUS
 }
 
 //TODO dispatch to one of the operation-parsing functions based on token type
@@ -145,7 +146,7 @@ method op(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, e
 requires |tokens| > 0
 requires 0 <= current_idx < |tokens|
 //TODO might have to require this
-//requires current_idx < |tokens| - 2
+//requires current_idx < |tokens|-2
 //ensure that we consumed at least one token
 ensures end_idx > current_idx
 ensures end_idx <= |tokens| + 1
@@ -153,16 +154,16 @@ decreases |tokens| - current_idx
 {
     var tokens := tokens;
     var current_idx := current_idx;
+   
+    //verify that the next token is a valid operation token
+    //TODO
 
-    //extract two parts parts of th
+    //extract the operation type from the current token
     var operation_type: TokenType := tokens[current_idx].token_type;
     var operation_value: string := tokens[current_idx].token_value;
-
+    
     //TODO need to fix decreases clause because the program doesn't think our program terminate
-    if operation_type == TokenType.MINUS{
-        result, end_idx := minus(tokens, current_idx);
-    }
-    else if operation_type == TokenType.UNARY_OP{
+    if operation_type == TokenType.UNARY_OP{
         result, end_idx := unaryOp(tokens, current_idx, operation_value);
     }
     else if operation_type == TokenType.BINARY_OP{
@@ -181,8 +182,7 @@ decreases |tokens| - current_idx
 method unaryOp(tokens: seq<Token>, current_idx: int, operation: string) returns (result: Result<Expr>, end_idx: int)
 requires |tokens| > 0
 requires 0 <= current_idx < |tokens|
-ensures end_idx > current_idx
-ensures end_idx <= |tokens| + 1
+ensures current_idx < end_idx <= |tokens| + 1
 decreases |tokens| - current_idx //i think this fixes the termination issue?
 {
     //parse the expression after the operator
@@ -207,8 +207,7 @@ decreases |tokens| - current_idx //i think this fixes the termination issue?
 method binaryOp(tokens: seq<Token>, current_idx: int, operation: string) returns (result: Result<Expr>, end_idx: int)
 requires |tokens| > 0
 requires 0 <= current_idx < |tokens|
-ensures end_idx > current_idx
-ensures end_idx <= |tokens| + 1
+ensures current_idx < end_idx <= |tokens|+1
 decreases |tokens| - current_idx
 {
     var current_idx := current_idx;
@@ -221,7 +220,6 @@ decreases |tokens| - current_idx
         return parsed_subexpr_1, current_idx;
     }
 
-    assume{:axiom} current_idx < |tokens|;
     //parse the second expression after the operator
     parsed_subexpr_2, current_idx := expr(tokens, current_idx);
     //return error immediately if second subexpression cannot be parsed
@@ -243,24 +241,17 @@ decreases |tokens| - current_idx
 method variableOp(tokens: seq<Token>, current_idx: int, operation: string) returns (result: Result<Expr>, end_idx: int)
 requires |tokens| > 0
 requires 0 <= current_idx < |tokens|
-ensures end_idx > current_idx
-ensures end_idx <= |tokens| + 1
+ensures current_idx < end_idx <= |tokens| + 1 
 decreases |tokens| - current_idx
 {
     //shadow current_idx
     var current_idx := current_idx;
-    var parsed_subexpr_1: Result<Expr>, parsed_subexpr_2: Result<Expr>; 
+    var parsed_subexpr_1: Result<Expr>;
 
-
-    //parse two required expressions after operator
+    //parse required expressions after operator
     parsed_subexpr_1, current_idx := expr(tokens, current_idx);
     if parsed_subexpr_1.Err?{
         return parsed_subexpr_1, current_idx;
-    }
-
-    parsed_subexpr_2, current_idx := expr(tokens, current_idx);
-    if parsed_subexpr_2.Err?{
-        return parsed_subexpr_2, current_idx;
     }
 
     //populate list of any remaining arguments
@@ -275,7 +266,7 @@ decreases |tokens| - current_idx
     //     //otherwise, keep parsing subexpressions and adding to list
     // }
 
-    var parsed_variable_op := VariableOp(operation, parsed_subexpr_1.data, parsed_subexpr_2.data, subexprList);
+    var parsed_variable_op := VariableOp(operation, parsed_subexpr_1.data, subexprList);
 
     //consume right parenthesis
     current_idx := current_idx + 1;
@@ -283,65 +274,6 @@ decreases |tokens| - current_idx
     //return parsed variable-argument operation
     result, end_idx := Ok(parsed_variable_op), current_idx;
 }
-
-//TODO parse an operation using the minus operator
-//either has to be subtraction or negation
-method minus(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, end_idx: int)
-requires |tokens| > 0
-requires 0 <= current_idx < |tokens|
-ensures end_idx > current_idx
-decreases |tokens| - current_idx
-//TODO add ensures
-{
-    //shadow current_idx
-    var current_idx := current_idx;
-    var parsed_subexpr_1: Result<Expr>;
-    var operation := "-";
-
-    //check if it is a unary op or
-    //parse required subexpr after operator
-    parsed_subexpr_1, current_idx := expr(tokens, current_idx);
-    if parsed_subexpr_1.Err?{
-        return parsed_subexpr_1, current_idx;
-    }
-    
-    var is_unary_op: bool;
-    is_unary_op := true; //TODO replace with a condition checking if the token from peek() is a RIGHT_PAREN
-
-    //peek ahead to the next token to see if it's a number or right parenthesis
-    //need to check that we're not yet at the end of the list already to do a safe peek
-    //peek()
-
-    //if it's a unary expression
-    if is_unary_op{ 
-        //consume right parenthesis
-        current_idx := current_idx + 1;
-
-        return Ok(UnaryOp(operation, parsed_subexpr_1.data)), current_idx;
-    }
-
-    //otherwise it's a variable-argument expression
-    //parse the other required subexpression
-    var parsed_subexpr_2: Result<Expr>;
-    parsed_subexpr_2, current_idx := expr(tokens, current_idx);
-    if parsed_subexpr_2.Err?{
-        return parsed_subexpr_2, current_idx;
-    }
-
-    //populate list of any remaining arguments
-    var subexprList: seq<Expr> := [];
-    //TODO figure out this loop
-    // while false
-    // condition will be something like while peek(tokens, current_idx).token_type != TokenType.RIGHT_PAREN
-    // invariant false
-    // {
-    //     //parse remaining args
-    // }
-
-    var parsed_variable_op := VariableOp(operation, parsed_subexpr_1.data, parsed_subexpr_2.data, subexprList);
-    return Ok(parsed_variable_op), current_idx;
-}
-
 
 method main()
 requires true
