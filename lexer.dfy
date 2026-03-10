@@ -2,7 +2,7 @@ datatype TokenType = LEFT_PAREN | RIGHT_PAREN | DOT | MINUS | PLUS | STAR | SLAS
                      | UNARY_OP | BINARY_OP | VARIABLE_OP | NUMBER | EOF | TEMPSTRING
 
 datatype Token = Pair(token_type:TokenType, token_value:string)
-
+datatype Result<T> = Ok(data: T) | Err(error: string)
 
 predicate validtype(token: Token){
     token.token_type==LEFT_PAREN ||
@@ -37,8 +37,35 @@ ensures Flatten(tok)==Flatten(tok2);
         
     )
 }*/
+predicate ValidUnary(tok: Token){
+    tok.token_value=="abs" || tok.token_value=="sqrt" || tok.token_value=="ceil"
+}
+predicate ValidBinary(tok: Token){
+    tok.token_value=="modulo" || tok.token_value=="expt"
+}
+predicate ValidVarOp(tok: Token){
+    tok.token_value=="min" || tok.token_value=="max"
+}
+predicate ValidNumber(tok: Token){
+    forall i::0<=i<|tok.token_value| ==>(
+        (tok.token_value[i] as int >=48 && tok.token_value[i] as int  <=57)
+        || tok.token_value[i]=='.'
+    )
+}
+predicate validValue(tok: Token){
+    (tok.token_type==UNARY_OP ==> ValidUnary(tok)) &&
+    (tok.token_type==BINARY_OP ==> ValidBinary(tok)) &&
+    (tok.token_type==VARIABLE_OP ==> ValidVarOp(tok)) &&
+    (tok.token_type==NUMBER ==> ValidNumber(tok)) &&
+    (tok.token_type==PLUS ==> tok.token_value=="+") &&
+    (tok.token_type==MINUS ==> tok.token_value=="-") &&
+    (tok.token_type==STAR ==> tok.token_value=="*") &&
+    (tok.token_type==SLASH ==> tok.token_value=="/") &&
+    (tok.token_type==LEFT_PAREN ==> tok.token_value=="(") &&
+    (tok.token_type==RIGHT_PAREN ==> tok.token_value==")")
+}
 
-method Lex(str: seq<char>) returns (tokenized: seq<Token>)
+method Lex(str: seq<char>) returns (tokenized: Result<seq<Token>>)
 requires forall i::0<=i<|str| ==> (
 (str[i] as int >=48 && str[i] as int  <=57) ||
 str[i]=='+' ||
@@ -51,11 +78,15 @@ str[i]==')'
 
 
 //ensures no tempstrings
-ensures forall i:: 0<=i<|tokenized| ==> (validtype(tokenized[i]))
+ensures tokenized.Ok? ==> forall i:: 0<=i<|tokenized.data| ==> (validtype(tokenized.data[i]))
 
 //ensures all tokens are valid and correct type
+ensures tokenized.Ok? ==> forall i:: 0<=i<|tokenized.data| ==> (
+    validValue(tokenized.data[i])
+)
+
 //ensures all characters are represented in order in tokens
-ensures Flatten(tokenized)==str;
+ensures tokenized.Ok? ==> Flatten(tokenized.data)==str;
 
 {
     var i:=0;
@@ -64,6 +95,7 @@ ensures Flatten(tokenized)==str;
     while i<|str|
     invariant forall i:: 0<=i<|tok| ==> (validtype(tok[i]) ||tok[i].token_type==TEMPSTRING)
     invariant i<=|str|
+    invariant forall i:: 0<=i<|tok| ==> validValue(tok[i])
     invariant Flatten(tok)==str[0..i]
     {
         //numbers
@@ -110,7 +142,10 @@ ensures Flatten(tokenized)==str;
             //num==0;
         }
         assert validtype(tok[|tok|-1]) || tok[|tok|-1].token_type==TEMPSTRING;
+        assert validValue(tok[|tok|-1]);
         i:=i+1;
+        //assert Flatten(tok)==str[0..i];
+        //assert forall i:: 0<=i<|tok| ==> validValue(tok[i]);
     }
     //specifying strings
     i:=0;
@@ -121,42 +156,42 @@ ensures Flatten(tokenized)==str;
 
     while i<|tok|
     invariant i<=|tok|
-    invariant forall i:: 0<=i<|tok| ==> (validtype(tok[i]) ||tok[i].token_type==TEMPSTRING);
+    invariant forall j:: 0<=j<|tok| ==> validValue(tok[j])
+    invariant forall j:: 0<=j<|tok| ==> (validtype(tok[j]) ||tok[j].token_type==TEMPSTRING);
     invariant forall j:: 0<=j<i ==> ((validtype(tok[j])))
     invariant |a|==|tok|
-    invariant forall i:: 0<=i<|tok| ==> a[i].token_value==tok[i].token_value;
+    invariant forall j:: 0<=j<|tok| ==> a[j].token_value==tok[j].token_value
     invariant Flatten(tok)==str
     {
         //ghost var a:=tok[i];
         //assert validtype(tok[i]) || tok[i].token_type==TEMPSTRING;
         if(tok[i].token_type==TEMPSTRING){ //if token is string
             
-            if(tok[i].token_value=="abs" || tok[i].token_value=="sqrt" || tok[i].token_value=="ceil"){
+            if(ValidUnary(tok[i])){
                 
                 tok := tok[i :=
                 Pair(UNARY_OP,tok[i].token_value)];
                 
             }
-            else if(tok[i].token_value=="modulo" || tok[i].token_value=="expt"){
+            else if(ValidBinary(tok[i])){
                 tok := tok[i :=
                 Pair(BINARY_OP,tok[i].token_value)];
             }
-            else if(tok[i].token_value=="min" || tok[i].token_value=="max"){
+            else if(ValidVarOp(tok[i])){
                 tok := tok[i :=
                 Pair(VARIABLE_OP,tok[i].token_value)];
             }
             else{
-                //REMOVE THIS LATER
-                tok := tok[i :=
-                Pair(VARIABLE_OP,tok[i].token_value)];
+                return Err("invalid string");
             }   
         }
         assert a[i].token_value==tok[i].token_value;
         Flatsame(tok,a);
         assert validtype(tok[i]);
+        //assert tok[i].token_type==UNARY_OP ==> ValidUnary(tok[i]);
         i:=i+1;
     }
-    return tok;
+    return Ok(tok);
 }
 
 /*match result_var
