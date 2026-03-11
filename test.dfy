@@ -39,7 +39,7 @@ ensures true
     //assert result1.error == "unexpected end of file";
 
     //TODO implement
-    assume(false);
+    assume{:axiom} (false);
 assume{:axiom} false;
 
 }

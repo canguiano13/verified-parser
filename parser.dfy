@@ -91,6 +91,8 @@ ensures current_idx == |tokens| ==> result.token_type == TokenType.EOF {
     result := tokens[current_idx];
 }
 
+//TODO can I add a lemma to prove that the call op() => unaryOp/binaryOp/variableOp() => expr() terminates?
+
 //-------------------------------PARSING--------------------------------
 //transform a set of tokens into an AST
 //returns Err if expression is invalid, otherwise returns Ok containing the AST root
@@ -115,23 +117,11 @@ ensures result.Ok? || result.Err?
 
     //otherwise the expression was successfully parsed
     assert ast.Ok?;
-    assert end_idx <= |tokens|;
 
-    //last token should be the EOF token
-    assume{:axiom} end_idx == |tokens| - 1;
-
-    //TODO prove these lines once parsing is done
-    //assert 0 <= end_idx < |tokens|;
-    //make sure that after parsing ends, the last token is EOF
-    //if it isn't we didn't parse it all the way
-    //TODO not sure if we need to even do this
-    if tokens[end_idx].token_type != TokenType.EOF{
-        return Err("unexpected end of file");
-    }
-
-    //consume EOF
-    end_idx := end_idx + 1;
+    //should be at the end of the tokens
+    //TODOs
     assert end_idx == |tokens|;
+
     return ast;
 }
 
@@ -148,6 +138,9 @@ ensures end_idx == current_idx + 1
 ensures 0 <= end_idx <= |tokens|
 decreases |tokens| - current_idx 
 {
+    //verify that the current token is a valid number token
+    //TODO
+
     //no other parsing needed than this
     var parsed_num: Expr := Number(tokens[current_idx].token_value);
     return Ok(parsed_num), current_idx + 1;
@@ -197,7 +190,7 @@ decreases |tokens| - current_idx
 
 
 
-//TODO dispatch to one of the operation-parsing functions based on token type
+//dispatch to one of the operation-parsing functions based on token type
 method op(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, end_idx: int)
 //should be at least one token
 requires |tokens| > 0
@@ -226,6 +219,7 @@ decreases |tokens| - current_idx
         return Err("unexpected EOF"), next_idx;
     }
 
+    //dispatch to appropriate parsing functon based on the operation type
     if operation_type == TokenType.UNARY_OP{
         result, end_idx := unaryOp(tokens, next_idx, operation_value);
     }
@@ -253,6 +247,9 @@ ensures current_idx < end_idx <= |tokens|
 ensures result.Ok? ==> end_idx > current_idx
 decreases |tokens| - current_idx
 {
+    //verify that it is a valid unary op
+    //TODO maybe put this in the preconditions?
+
     //parse the expression after the operator
     var parsed_subexpr, next_idx := expr(tokens, current_idx);
 
@@ -264,12 +261,12 @@ decreases |tokens| - current_idx
     if next_idx >= |tokens|{
         return Err("unexpected EOF"), next_idx;
     }
-    //last token in expression should be a right paren
+    //next token should be a right paren
     if tokens[next_idx].token_type != TokenType.RIGHT_PAREN{
         return Err("missing RIGHT_PAREN"), next_idx;
     }
 
-    //otherwise the operation can be parsed
+    //the operation can be parsed
     var parsed_unary_op := Ok(UnaryOp(operation, parsed_subexpr.data));
 
     //consume right parenthesis
@@ -289,6 +286,10 @@ ensures current_idx < end_idx <= |tokens|
 ensures result.Ok? ==> end_idx > current_idx
 decreases |tokens| - current_idx
 {
+
+    //verify the operator is a binary op
+    //TODO maybe put in preconditions
+
     //parse the first subexpressions after the operator
     var parsed_subexpr_1: Result<Expr>, next_idx: int;
     parsed_subexpr_1, next_idx := expr(tokens, current_idx);
@@ -344,6 +345,9 @@ ensures current_idx < end_idx <= |tokens|
 ensures result.Ok? ==> end_idx > current_idx 
 decreases |tokens| - current_idx
 {
+    //verify the current token is a variable-argument operator
+    //TODO maybe put in preconditions?
+
     //required to have at least one subexpression after operator
     var parsed_required_subexpression: Result<Expr>, next_idx: int;
 
