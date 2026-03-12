@@ -22,7 +22,13 @@ ensures true
     assume{:axiom} false;
 
 }
-
+method testSimple(){
+    var s:= "(+ 1 2)";
+    var tokens := lex()
+    var ast = parse(tokens)
+    assert ast = expectedTree;
+    //assert eq something
+}
 
 //unit tests for parsing
 method testParse()

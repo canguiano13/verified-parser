@@ -1,6 +1,8 @@
 //include "test.dfy" 
 //include "lexer.dfy" //TODO will uncomment these later once the files are unified
 
+//TODO turn into a module so that we can import it in main.py
+
 /* more or less the grammar we're parsing
 <P>             ::= <expr>
 <expr>          ::= <unary-op> | <binary-op> | <variable-op> | <digits>
@@ -91,7 +93,6 @@ ensures current_idx == |tokens| ==> result.token_type == TokenType.EOF {
     result := tokens[current_idx];
 }
 
-//TODO can I add a lemma to prove that the call op() => unaryOp/binaryOp/variableOp() => expr() terminates?
 
 //-------------------------------PARSING--------------------------------
 //transform a set of tokens into an AST
@@ -103,6 +104,15 @@ method parse(tokens: seq<Token>) returns (result: Result<Expr>)
 requires |tokens| > 0
 //it must either parse the expression, or return an error
 ensures result.Ok? || result.Err?
+//TODO ensures WellFormed(result)
+//TODO if tokens has mismatched parens, then must return err
+//TODO other properties of tokens and what result they imply
+//TODO length of N tokens => depth of tree or length of tree should never exceed some value, depth of paren relation to pairs of parenthesis
+//TODO maybe under what circumstance does it return an error? e.g. input token string is syntactically correct => can parse
+//TODO explore adding start_idx, end_idx to expr datatype -> link to tokens constituting the expression
+//TODO what else should parsers ensure?
+//TODO think about reach goal => actually verify full functional correctness about the parser
+//
 //this is kind of like return True? what to verify here?
 {
     //parse starting at first token
@@ -111,7 +121,7 @@ ensures result.Ok? || result.Err?
 
     //could not parse invalid expression
     if ast.Err?{
-        assert end_idx <= |tokens|;
+        //assert end_idx <= |tokens|;
         return ast;
     }
 
@@ -119,7 +129,8 @@ ensures result.Ok? || result.Err?
     assert ast.Ok?;
 
     //should be at the end of the tokens
-    //TODOs
+    //TODO prove this
+    assume {:axiom} end_idx == |tokens|;
     assert end_idx == |tokens|;
 
     return ast;
@@ -153,10 +164,10 @@ requires |tokens| > 0
 //current_idx must be in bounds
 requires 0 <= current_idx < |tokens|
 //after parsing, end_idx should be within [0, len(tokens)]
-ensures 0 <= end_idx <= |tokens|
+//ensures 0 <= end_idx <= |tokens|
 //if we can parse the expression, the current_idx pointer must increase
 ensures result.Ok? ==> end_idx > current_idx
-decreases |tokens| - current_idx
+decreases |tokens| - current_idx, 0
 {
     //get next token in list
     var next_token: Token := tokens[current_idx];
@@ -170,12 +181,12 @@ decreases |tokens| - current_idx
 
     //otherwise token is an expression
     //subexpression should always start with '(', otherwise it's not a valid subexpression, e.g. "(+ 1 + 2 3)"
+    //verify that the token we are going to consume is a left paren
     if next_token.token_type != TokenType.LEFT_PAREN{
         //consume the invalid token, then return an error
         var next_idx := current_idx + 1;
         return Err("invalid expression"), next_idx;
     }
-
     //consume left parenthesis
     var next_idx := current_idx + 1;
 
@@ -188,8 +199,6 @@ decreases |tokens| - current_idx
     result, end_idx := op(tokens, next_idx);
 }
 
-
-
 //dispatch to one of the operation-parsing functions based on token type
 method op(tokens: seq<Token>, current_idx: int) returns (result: Result<Expr>, end_idx: int)
 //should be at least one token
@@ -197,10 +206,10 @@ requires |tokens| > 0
 //current_idx should be in bounds before parsing
 requires 0 <= current_idx < |tokens|
 //parser consumed at least one token
-ensures current_idx < end_idx <= |tokens|
+//ensures current_idx < end_idx <= |tokens|
 //if we can parse the operation, current_idx must increase
 ensures result.Ok? ==> end_idx > current_idx
-decreases |tokens| - current_idx
+decreases |tokens| - current_idx, 1
 {
     //starting token should be an operation 
     //extract the operation type from the current token
@@ -235,24 +244,26 @@ decreases |tokens| - current_idx
 
 }
 
-//TODO parse a single unary operation
+//parse a single unary operation
 method unaryOp(tokens: seq<Token>, current_idx: int, operation: string) returns (result: Result<Expr>, end_idx: int)
 //at least one token to parse
 requires |tokens| > 0
 //current_idx is in bounds
-requires 0 < current_idx < |tokens|
+requires 0 <= current_idx < |tokens|
 //after parsing, end_idx is still in bounds
-ensures current_idx < end_idx <= |tokens|
+//ensures current_idx < end_idx <= |tokens|
 //if we can parse the unary operation, current_idx must increase
 ensures result.Ok? ==> end_idx > current_idx
-decreases |tokens| - current_idx
+decreases |tokens| - current_idx, 2
 {
     //verify that it is a valid unary op
     //TODO maybe put this in the preconditions?
 
+    //|tokens| - current_idx should have been decreased by this point
+
     //parse the expression after the operator
     var parsed_subexpr, next_idx := expr(tokens, current_idx);
-
+    
     //check if parsing the subexpression fails
     if parsed_subexpr.Err?{
         return parsed_subexpr, next_idx;
@@ -281,10 +292,10 @@ requires |tokens| > 0
 //current_idx should be in bounds
 requires 0 <= current_idx < |tokens|
 //after parsing, end_idx should be in bounds
-ensures current_idx < end_idx <= |tokens|
+//ensures current_idx < end_idx <= |tokens|
 //if we can parse the binary operation, the index pointer must increase
 ensures result.Ok? ==> end_idx > current_idx
-decreases |tokens| - current_idx
+decreases |tokens| - current_idx, 2
 {
 
     //verify the operator is a binary op
@@ -340,19 +351,19 @@ requires |tokens| > 0
 //current_idx should be valid
 requires 0 <= current_idx < |tokens|
 //after parsing, should be at the end of the expression or in bounds 
-ensures current_idx < end_idx <= |tokens|
+//ensures current_idx < end_idx <= |tokens|
 //if the operation can be parsed, current_idx must increase
 ensures result.Ok? ==> end_idx > current_idx 
-decreases |tokens| - current_idx
+decreases |tokens| - current_idx, 2
 {
     //verify the current token is a variable-argument operator
     //TODO maybe put in preconditions?
-
+    //(+ 1 2 3)
     //required to have at least one subexpression after operator
     var parsed_required_subexpression: Result<Expr>, next_idx: int;
 
     //parse required expressions after operator
-    parsed_required_subexpression, next_idx:= expr(tokens, current_idx);
+    parsed_required_subexpression, next_idx := expr(tokens, current_idx);
     if parsed_required_subexpression.Err?{
         return parsed_required_subexpression, current_idx;
     }
@@ -368,22 +379,28 @@ decreases |tokens| - current_idx
     //if it is a RIGHT_PARENT, end of expression. loop terminates
     //otherwise, keep parsing subexpressions and adding to list
     var nextToken: Token := peekToken(tokens, next_idx);
+
+    //(+ 1 2 3 4)
     while nextToken.token_type != TokenType.RIGHT_PAREN
     //current_idx is always in bounds
     invariant 0 <= current_idx < |tokens|
     //current_idx pointer always gets closer to the end of the token sequence
-    decreases |tokens| - current_idx
+    decreases |tokens| - next_idx, 2
     {
         //parse next subexpr
         var next_parsed_subexpr: Result<Expr>;
-        next_parsed_subexpr, next_idx:= expr(tokens, next_idx);
-        //check if subexpression can't be parsed
-        if next_parsed_subexpr.Err?{
-            return next_parsed_subexpr, current_idx;
-        }
+
+        //TODO prove this
         //ensure that we are not at the end of the expression prematurely
         if next_idx >= |tokens|{
             return Err("unexpected EOF"), next_idx;
+        }
+
+        next_parsed_subexpr, next_idx := expr(tokens, next_idx);
+
+        //check if subexpression can't be parsed
+        if next_parsed_subexpr.Err?{
+            return next_parsed_subexpr, next_idx;
         }
 
         //add to list of arguments

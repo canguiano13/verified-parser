@@ -25,8 +25,8 @@ function Flatten(tok: seq<Token>): seq<char>
 }
 lemma Flatsame(tok: seq<Token>,tok2: seq<Token>)
 requires |tok|==|tok2|
-requires forall i :: 0<=i<|tok| ==> tok[i].token_value==tok2[i].token_value;
-ensures Flatten(tok)==Flatten(tok2);
+requires forall i :: 0<=i<|tok| ==> tok[i].token_value==tok2[i].token_value
+ensures Flatten(tok)==Flatten(tok2)
 {
 
 }
@@ -86,7 +86,7 @@ ensures tokenized.Ok? ==> forall i:: 0<=i<|tokenized.data| ==> (
 )
 
 //ensures all characters are represented in order in tokens
-ensures tokenized.Ok? ==> Flatten(tokenized.data)==str;
+ensures tokenized.Ok? ==> Flatten(tokenized.data)==str
 
 {
     var i:=0;
@@ -157,7 +157,7 @@ ensures tokenized.Ok? ==> Flatten(tokenized.data)==str;
     while i<|tok|
     invariant i<=|tok|
     invariant forall j:: 0<=j<|tok| ==> validValue(tok[j])
-    invariant forall j:: 0<=j<|tok| ==> (validtype(tok[j]) ||tok[j].token_type==TEMPSTRING);
+    invariant forall j:: 0<=j<|tok| ==> (validtype(tok[j]) ||tok[j].token_type==TEMPSTRING)
     invariant forall j:: 0<=j<i ==> ((validtype(tok[j])))
     invariant |a|==|tok|
     invariant forall j:: 0<=j<|tok| ==> a[j].token_value==tok[j].token_value
