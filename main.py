@@ -1,21 +1,66 @@
 import sys
-#import VerifiedParser TODO import this once done with the verified program
+
+#these require a couple things
+#should have already compiled with Dafny via
+    #dafny build --target:py --output:parse_ast parser.dfy lexer.dfy types.dfy
+#then, they need to copy main.py into the built folder
+    #cp main.py parse_ast-py/ && cd parse_ast-py
+#now they can invoke the program
+    #e.g. python3 main.py "(+ 1 2 3)"
+#might be better to create a script for this
+
+import module_ as lexerparser
+import _dafny
+
+#convert a dafny sequence into a string
+#thanks claude
+def seq_to_str(seq):
+    return ''.join(seq)
 
 #print output
-def pretty_print(tokens):
-    indent = "\t"
-    factor = 4
+#TODO figure out logic for pretty printing
+#ast is a nested tree structure with a root expression and one or more subexpressions
+def pretty_print(ast, factor=1, root_print=True):
+    indent = "" * factor
 
-    #TODO figure out logic for pretty printing
-    #tokens is a nested tree structure with a root expression and one or more subexpressions
+    if ast.is_Number:
+        num = seq_to_str(ast.value)
+        return f"{indent}{num}"
 
+    elif ast.is_UnaryOp:
+        op = seq_to_str(ast.op)
+        arg = pretty_print(ast.arg, factor + 1)
+        return f"{indent}({op}\n{arg}\n)"
 
+    elif ast.is_BinaryOp:
+        op = seq_to_str(ast.op)
+        arg1 = pretty_print(ast.arg1, factor + 1)
+        arg2 = pretty_print(ast.arg2, factor + 1)
+        return f"{indent}({op}\n{arg1}\n{arg2}\n)"
+
+    elif ast.is_VariableOp:
+        op = seq_to_str(ast.op)
+        required_arg = pretty_print(ast.arg1, factor + 1)
+
+        args = [required_arg]
+        for arg in ast.argList:
+            args.append(pretty_print(arg, factor + 1))
+        
+        formatted_args = "\n".join(args)
+        return f"{indent}({op}\n{formatted_args}\n)"
+
+    else:
+        error("Error while printing")
 
 #print an error message and exit immediately
 def error(message):
     sys.stderr.write(f"Error: {message}\n")
     sys.stderr.write(f"Example usage: python3 main.py \"(+ 1 2 (-4 3))\"\n")
     sys.exit(1)
+
+#convert python string to sequence of dafny chars
+def to_dafny_chars(s: str):
+    return _dafny.SeqWithoutIsStrInference(list(s))
 
 
 def main():
@@ -25,19 +70,24 @@ def main():
 
     #get the expression to parse from the user
     expr = sys.argv[-1]
-    print(expr)
+    if len(expr) == 0:
+        error("Unexpected EOF")
 
-    #TODO fill in parsing from dafny here
     #lex the tokens from the user's expression
-    #tokens = lex(expr)
+    lex_result = lexerparser.default__.lex(expr)
+    #if can't lex, print the error
+    if lex_result.is_Err:
+        error(seq_to_str(lex_result.error))
+    tokens = lex_result.data
 
     #parse the tokens derived into an AST
-    #ast = parse(tokens)
+    parse_result = lexerparser.default__.parse(tokens)
+    #if can't parse, print the error
+    if parse_result.is_Err:
+        error(seq_to_str(parse_result.error))
 
-
-    ast = [] #TODO remove this, we will call parse to bind ast 
-
-    pretty_print(ast)
+    ast = parse_result.data
+    print(pretty_print(ast))
 
 
 if __name__ == "__main__":

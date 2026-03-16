@@ -1,5 +1,5 @@
-//include "test.dfy"
 include "types.dfy" 
+
 
 //TODO turn into a module so that we can import it in main.py
 
@@ -401,9 +401,3 @@ decreases |tokens| - current_idx, 2
     result, end_idx := Ok(parsed_variable_op), next_idx;
 }
 
-method main()
-requires true
-ensures true
-{
-    //TODO add something here
-}

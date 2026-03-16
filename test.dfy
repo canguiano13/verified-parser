@@ -1,6 +1,6 @@
 //TODO might be good to separate the testing from the lexing and parsing
 include "parser.dfy"
-
+include "lexer.dfy"
 
 //unit tests for tagging
 //TODO we can probably remove this because the lexer will include this logic
@@ -23,11 +23,18 @@ ensures true
 
 }
 method testSimple(){
-    var s:= "(+ 1 2)";
-    var tokens := lex()
-    var ast = parse(tokens)
-    assert ast = expectedTree;
+    var s:= "(+12)";
+    var tokens := lex(s);
+
+    if tokens.Err?{
+        assert false;
+    }
+
+    var ast := parse(tokens.data);
+    var expectedTree := "(+123)";
+
     //assert eq something
+    //assert ast.data == expectedTree;
 }
 
 //unit tests for parsing

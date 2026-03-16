@@ -62,7 +62,7 @@ predicate validValue(tok: Token){
     (tok.token_type==RIGHT_PAREN ==> tok.token_value==")")
 }
 
-method Lex(str: seq<char>) returns (tokenized: Result<seq<Token>>)
+method lex(str: seq<char>) returns (tokenized: Result<seq<Token>>)
 requires forall i::0<=i<|str| ==> (
 (str[i] as int >=48 && str[i] as int  <=57) ||
 str[i]=='+' ||
