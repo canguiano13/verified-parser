@@ -1,14 +1,4 @@
 import sys
-
-#these require a couple things
-#should have already compiled with Dafny via
-    #dafny build --target:py --output:parse_ast parser.dfy lexer.dfy types.dfy
-#then, they need to copy main.py into the built folder
-    #cp main.py parse_ast-py/ && cd parse_ast-py
-#now they can invoke the program
-    #e.g. python3 main.py "(+ 1 2 3)"
-#might be better to create a script for this
-
 import module_ as lexerparser
 import _dafny
 
@@ -18,7 +8,6 @@ def seq_to_str(seq):
     return ''.join(seq)
 
 #print output
-#TODO figure out logic for pretty printing
 #ast is a nested tree structure with a root expression and one or more subexpressions
 def pretty_print(ast, factor=1, root_print=True):
     indent = "" * factor
@@ -57,11 +46,6 @@ def error(message):
     sys.stderr.write(f"Error: {message}\n")
     sys.stderr.write(f"Example usage: python3 main.py \"(+ 1 2 (-4 3))\"\n")
     sys.exit(1)
-
-#convert python string to sequence of dafny chars
-def to_dafny_chars(s: str):
-    return _dafny.SeqWithoutIsStrInference(list(s))
-
 
 def main():
     #throw an error if the user doesn't provide the expression
