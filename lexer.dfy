@@ -1,8 +1,5 @@
-datatype TokenType = LEFT_PAREN | RIGHT_PAREN | DOT | MINUS | PLUS | STAR | SLASH 
-                     | UNARY_OP | BINARY_OP | VARIABLE_OP | NUMBER | EOF | TEMPSTRING
+include "types.dfy" //contains all the custom types we're using
 
-datatype Token = Pair(token_type:TokenType, token_value:string)
-datatype Result<T> = Ok(data: T) | Err(error: string)
 
 predicate validtype(token: Token){
     token.token_type==LEFT_PAREN ||
