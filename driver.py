@@ -44,7 +44,7 @@ def pretty_print(ast, factor=1, root_print=True):
 #print an error message and exit immediately
 def error(message):
     sys.stderr.write(f"Error: {message}\n")
-    sys.stderr.write(f"Example usage: python3 main.py \"(+ 1 2 (-4 3))\"\n")
+    sys.stderr.write(f"Example usage: python3 main.py \"(+ 1 2 (- 4 3))\"\n")
     sys.exit(1)
 
 def main():
