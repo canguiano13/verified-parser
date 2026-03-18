@@ -323,6 +323,12 @@ ensures tokenized.Ok? ==> Flatten(tokenized.data)==str;
 requires forall i:: 0<=i<|oldtok| ==> (validtype(oldtok[i]) || oldtok[i].token_type==TEMPSTRING)
 requires forall i:: 0<=i<|oldtok| ==> (validValue(oldtok[i]) || oldtok[i].token_type==TEMPSTRING)
 requires Flatten(oldtok)==str;
+
+ensures tokenized.Err? ==> (
+    exists i:nat :: 
+        (i<|oldtok| && oldtok[i].token_type==TEMPSTRING && !ValidString(oldtok[i].token_value))
+)
+
 {
     var tok:=oldtok;
 
@@ -337,12 +343,14 @@ requires Flatten(oldtok)==str;
     invariant forall j:: 0<=j<|tok| ==> (validValue(tok[j]) ||tok[j].token_type==TEMPSTRING);
     invariant forall j:: 0<=j<i ==> ((validtype(tok[j])))
     invariant |a|==|tok|
+    invariant forall j:: i<=j<|tok| ==> tok[j].token_type==oldtok[j].token_type
     invariant forall j:: 0<=j<|tok| ==> a[j].token_value==tok[j].token_value
     invariant Flatten(tok)==str
     {
         //ghost var a:=tok[i];
         //assert validtype(tok[i]) || tok[i].token_type==TEMPSTRING;
         if(tok[i].token_type==TEMPSTRING){ //if token is string
+            assert oldtok[i].token_type==TEMPSTRING;
             
             if(ValidUnary(tok[i])){
                 tok := tok[i :=
@@ -360,7 +368,9 @@ requires Flatten(oldtok)==str;
                 //assert validtype(tok[i]);
             }
             else{
-                //FlatInclude(i,tok,str);
+                //assert i<|oldtok|;
+                //assert oldtok[i].token_type==TEMPSTRING;
+                assert (i<|oldtok| && oldtok[i].token_type==TEMPSTRING && !ValidString(oldtok[i].token_value));
                 return Err("invalid string");
             }   
             //assert validtype(tok[i]);
