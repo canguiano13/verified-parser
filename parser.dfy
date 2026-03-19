@@ -337,6 +337,8 @@ decreases |tokens| - start_idx, 2
 
     //required to have at least one subexpression after operator
     var parsed_required_subexpression: Result<Expr>, next_idx: int;
+    //populate argument list with any remaining arguments
+    var subexprList: seq<Expr> := [];
 
     //parse required expressions after operator
     parsed_required_subexpression, next_idx := expr(tokens, start_idx);
@@ -348,17 +350,18 @@ decreases |tokens| - start_idx, 2
         return Err("unexpected EOF"), start_idx;
     }
 
-    //populate argument list with any remaining arguments
-    var subexprList: seq<Expr> := [];
+    assert next_idx < |tokens|;
 
     //look ahead to next token
     //if it is a RIGHT_PARENT, end of expression. loop terminates
     //otherwise, keep parsing subexpressions and adding to list
     var nextToken: Token := peekToken(tokens, next_idx);
 
+    //until we reach right paren, there are more arguments
+    //arguments are numbers or expressions
     while nextToken.token_type != TokenType.RIGHT_PAREN
-    //start_idx is always in bounds
-    invariant 0 <= start_idx < |tokens|
+    //next_idx is always in bounds
+    invariant 0 <= next_idx < |tokens|
     invariant wellFormedArgList(subexprList)
     //start_idx pointer always gets closer to the end of the token sequence
     decreases |tokens| - next_idx, 1
@@ -373,6 +376,11 @@ decreases |tokens| - start_idx, 2
 
         next_parsed_subexpr, next_idx := expr(tokens, next_idx);
 
+        //ensure that we are not at the end of the expression prematurely
+        if next_idx >= |tokens|{
+            return Err("unexpected EOF"), start_idx;
+        }
+
         //check if subexpression can't be parsed
         if next_parsed_subexpr.Err?{
             return next_parsed_subexpr, start_idx;
@@ -382,7 +390,7 @@ decreases |tokens| - start_idx, 2
         subexprList := subexprList + [next_parsed_subexpr.data];
 
         //move to next token in expression
-        nextToken := peekToken(tokens, start_idx);
+        nextToken := peekToken(tokens, next_idx);
     }
 
     var parsed_variable_op := VariableOp(operation, parsed_required_subexpression.data, subexprList);

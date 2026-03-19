@@ -220,12 +220,11 @@ ensures tokenized.Ok? ==> Flatten(tokenized.data)==str
         }
         //basic symbols
         else{
+            var c := str[i];
             if(str[i]=='+'){
                 tok:=tok + [Pair(PLUS,"+")];
-                //IDK WHY THIS LINE IN PARTICULAR HELPS THE PROVER, BUT IT DOES SO I'M KEEPING IT
-                assert Flatten(tok)==str[0..i+1];
             }
-            else if(str[i]=='-'){
+            else if(str[i]=='-'){            
                tok:=tok + [Pair(MINUS,"-")];
             }
             else if(str[i]=='*'){
@@ -256,7 +255,7 @@ ensures tokenized.Ok? ==> Flatten(tokenized.data)==str
                     str[i]==')' ||
                     (str[i]==' ' || str[i]=='\n' || str[i]=='\t')
                 );
-                return Err("invalid string");
+                return Err("bad character '" + [str[i]] + "'");
             }  
             //tokpos:=tokpos+1;
             //num==0;
