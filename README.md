@@ -29,14 +29,21 @@ python3 --version
 dafny --version
 ```
 
-Instructions for Python and Dafny can be found at the following links:
+Instructions for installing Python and Dafny can be found at the following links:
 
 - Python: https://www.python.org/downloads/
 - Dafny: https://dafny.org/latest/Installation
 
+
+If you haven't yet, be sure to also clone the repository via the following commands:
+```
+git clone https://github.com/canguiano13/verified-parser.git
+cd verified-parser
+```
+
 ## 2. Running the Parser
 
-To start, run `build.sh`, which will build the Dafny project into a Python module. This is required before you can start parsing expressions. This script has been tested on a machine running Ubuntu 24.04. If it fails to build the project, see **3. Troubleshooting**
+To start, run `build.sh`, which will build the Dafny project into a Python module. This is required before you can start parsing expressions. This script has been tested on a machine running Ubuntu 24.04. If it fails to build the project, see **3. Manually Building**
 
 ```
 ./build.sh 
@@ -79,4 +86,26 @@ Once you have finished using the parser, you can clean up unneeded files with ou
 ./clean.sh
 ```
 
+## 3. Manually Building
+In the event the `./build.sh` script doesn't work for you, can also build using the following steps. First, verify the files we're going to build. This should report no errors.
 
+```
+dafny verify parser.dfy lexer.dfy types.dfy validation.dfy
+```
+
+Next, transpile the Dafny code into Python. This will make a module that we can connect our driver file to.
+
+```
+dafny build --target:py --output:parse_ast parser.dfy lexer.dfy types.dfy validate.dfy
+```
+
+Once this completes, you should see a folder named `parse_ast-py/` in your directory. Copy the driver into this directory, then `cd` into it.
+```
+cp driver.py ./parse_ast-py/main.py
+cd ./parse_ast-py
+```
+
+Now the parser is ready to accept an expression!
+```
+python3 main.py "(+ 1 2 (- 4 3))"
+```
