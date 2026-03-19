@@ -246,7 +246,7 @@ ensures tokenized.Ok? ==> Flatten(tokenized.data)==str
     //var tokpos:=0;
     var tok: seq<Token> := [];
     while i<|str|
-    invariant forall i:: 0<=i<|tok| ==> (validtype(tok[i]) ||tok[i].token_type==TEMPSTRING)
+    invariant forall i:: 0<=i<|tok| ==> (validType(tok[i]) ||tok[i].token_type==TEMPSTRING)
     invariant i<=|str|
     invariant forall i:: 0<=i<|tok| ==> (validValue(tok[i])||tok[i].token_type==TEMPSTRING)
     invariant Flatten(tok)==str[0..i]
@@ -381,12 +381,12 @@ ensures tokenized.Err? ==> (
                 Pair(UNARY_OP,tok[i].token_value)];
                 //assert validtype(tok[i]);
             }
-            else if(ValidBinary(tok[i])){
+             else if(ValidBinary(tok[i].token_value)){
                 tok := tok[i :=
                 Pair(BINARY_OP,tok[i].token_value)];
                 //assert validtype(tok[i]);
             }
-            else if(ValidVarOp(tok[i])){
+             else if(ValidVariable(tok[i].token_value)){
                 tok := tok[i :=
                 Pair(VARIABLE_OP,tok[i].token_value)];
                 //assert validtype(tok[i]);
