@@ -1,7 +1,7 @@
 //only way I could think to get around the duplicate custom type declaration
 //define the possible token types as an enum
 datatype TokenType = LEFT_PAREN | RIGHT_PAREN | DOT | MINUS | PLUS | STAR | SLASH 
-                     | UNARY_OP | BINARY_OP | VARIABLE_OP | NUMBER | EOF | TEMPSTRING
+                     | UNARY_OP | BINARY_OP | VARIABLE_OP | NUMBER | EOF | TEMPSTRING | SPACE
 
 //define the possible operations that have identifiers longer than a single character
 datatype BuiltInOp = ABS | SQRT | CEIL | MODULO | EXPT | MIN | MAX
