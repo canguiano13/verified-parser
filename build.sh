@@ -7,7 +7,7 @@ if [[ -d "./parse_ast-py"  && -e "./main.py" ]]; then
 fi
 
 #compile the dafny files into python
-dafny build --target:py --output:parse_ast parser.dfy lexer.dfy types.dfy
+dafny build --target:py --output:parse_ast parser.dfy lexer.dfy types.dfy validate.dfy
 
 #check that dafny could compile the files
 if [ ! -d "./parse_ast-py" ]; then
