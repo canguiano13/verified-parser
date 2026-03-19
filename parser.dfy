@@ -16,11 +16,27 @@ include "validate.dfy"
 */
 
 
-//TODO
+//true if an expression is well-formed
+//all operators are valid given the tokenType
+//all subexpressions are well-formed
 predicate isWellFormed(expr: Expr){
-    true
+    //numbers are always be well-formed
+    (expr.Number? ==> true) &&
+    //unary operations should have valid unary operator and well formed subexpression
+    (expr.UnaryOp? ==> 
+        ValidUnary(expr.op) && isWellFormed(expr.arg)
+    ) &&
+    (expr.BinaryOp? ==>
+        ValidBinary(expr.op) && isWellFormed(expr.arg1) && isWellFormed(expr.arg2)
+    ) &&
+    (expr.VariableOp? ==>
+        ValidVariable(expr.op) && isWellFormed(expr.arg1) && wellFormedArgList(expr.argList)
+    )
 }
 
+predicate wellFormedArgList(argList: seq<Expr>){
+    forall i :: 0 <= i < |argList| ==> isWellFormed(argList[i])
+}
 //peek ahead by a single token, but do not consume it
 //if there are no more tokens, return EOF
 method peekToken(tokens: seq<Token>, start_idx: int) returns (result: Token)
@@ -50,7 +66,6 @@ method parse(tokens: seq<Token>) returns (result: Result<Expr>)
 requires |tokens| > 0
 //all tokens should be valid, otherwise the lexer will have rejected the expression
 requires forall i :: 0 <= i < |tokens| ==> validValue(tokens[i])
-//TODO ensures WellFormed(result)
 //TODO if tokens has mismatched parens, then must return err
 //TODO other properties of tokens and what result they imply
 //TODO length of N tokens => depth of tree or length of tree should never exceed some value, depth of paren relation to pairs of parenthesis
@@ -58,8 +73,10 @@ requires forall i :: 0 <= i < |tokens| ==> validValue(tokens[i])
 //TODO explore adding start_idx, end_idx to expr datatype -> link to tokens constituting the expression
 //TODO what else should parsers ensure?
 //TODO think about reach goal => actually verify full functional correctness about the parser
-//
-//this is kind of like return True? what to verify here?
+
+//the tree should be well formed 
+//i.e. all tokens have the correct types, and all values should be valid according to their type
+ensures result.Ok? ==> isWellFormed(result.data)
 {
     //parse starting at first token
     var start_idx := 0;
@@ -81,6 +98,9 @@ requires forall i :: 0 <= i < |tokens| ==> validValue(tokens[i])
 
     //now this must be true
     assert end_idx == |tokens|;
+
+    //TODO last thing we need to prove!!
+    assert isWellFormed(ast.data);
     return ast;
 }
 
@@ -93,8 +113,11 @@ requires 0 <= start_idx < |tokens|
 requires tokens[start_idx].token_type == TokenType.NUMBER
 //ensure that we consumed just the number token 
 ensures end_idx == start_idx + 1
+//no error condition for numbers
+ensures result.Ok?
 //end index should still be in bounds
-ensures 0 <= end_idx <= |tokens|
+ensures result.Ok? ==> 0 <= end_idx <= |tokens|
+ensures result.Ok? ==> isWellFormed(result.data)
 decreases |tokens| - start_idx 
 {
     //verify that the current token is a valid number token
@@ -111,10 +134,10 @@ requires |tokens| > 0
 requires 0 <= start_idx < |tokens|
 //all tokens should be valid
 requires forall i :: 0 <= i < |tokens| ==> validValue(tokens[i])
-//after parsing, end_idx should be within [0, len(tokens)]
-//ensures 0 <= end_idx <= |tokens|
 //if we can parse the expression, the start_idx pointer must increase
 ensures result.Ok? ==> end_idx > start_idx
+//ensure that if we can parse it, the subexpression produced well-formed
+ensures result.Ok? ==> isWellFormed(result.data)
 decreases |tokens| - start_idx, 0
 {
     //get next token in list
@@ -124,6 +147,11 @@ decreases |tokens| - start_idx, 0
     //if the expression is a number, parse it
     if token_type == TokenType.NUMBER{
         var parsed_num, end_idx := number(tokens, start_idx);
+
+        //no error condition for numbers
+        //asuming the lexer properly lexes them, they are always well-formed and can be parsed
+        assert !parsed_num.Err?;
+
         return parsed_num, end_idx;
     }
 
@@ -155,6 +183,7 @@ requires 0 <= start_idx < |tokens|
 requires forall i :: 0 <= i < |tokens| ==> validValue(tokens[i])
 //if we can parse the operation, start_idx must increase
 ensures result.Ok? ==> end_idx > start_idx
+ensures result.Ok? ==> isWellFormed(result.data)
 decreases |tokens| - start_idx, 1
 {
     //starting token should be an operation 
@@ -172,33 +201,12 @@ decreases |tokens| - start_idx, 1
 
     //dispatch to appropriate parsing functon based on the operation type
     if operation_type == TokenType.UNARY_OP{
-        //prove to dafny that if a token is a unary op, then it has a valid token value
-        //the lexer should have proved this already
-        assert validValue(tokens[start_idx]);
-        assert tokens[start_idx].token_type == UNARY_OP;
-        assert tokens[start_idx].token_type == UNARY_OP ==> ValidUnary(tokens[start_idx].token_value);
-        assert ValidUnary(tokens[start_idx].token_value);
-        assert ValidUnary(operation_value);
-
         result, end_idx := unaryOp(tokens, next_idx, operation_value);
     }
     else if operation_type == TokenType.BINARY_OP{
-        //prove to dafny that if a token is a binary op, then it has a valid token value
-        //the lexer should have proved this already
-        assert validValue(tokens[start_idx]);
-        assert tokens[start_idx].token_type == BINARY_OP;
-        assert tokens[start_idx].token_type == BINARY_OP ==> ValidBinary(tokens[start_idx].token_value);
-        assert ValidBinary(tokens[start_idx].token_value);
-        assert ValidBinary(operation_value);
-
         result, end_idx := binaryOp(tokens, next_idx, operation_value);
     }
     else if validVariableType(operation_type) {
-        //prove to dafny that if a token is a binary op, then it has a valid token value
-        //the lexer should have proved this already
-        assert validValue(tokens[start_idx]);
-        assert tokens[start_idx].token_type == VARIABLE_OP ==> ValidVariable(tokens[start_idx].token_value);
-
         result, end_idx := variableOp(tokens, next_idx, operation_value);
     }
     //otherwise not a valid valid operation token
@@ -220,6 +228,7 @@ requires forall i :: 0 <= i < |tokens| ==> validValue(tokens[i])
 requires ValidUnary(operation)
 //if we can parse the unary operation, start_idx must increase
 ensures result.Ok? ==> end_idx > start_idx
+ensures result.Ok? ==> isWellFormed(result.data)
 decreases |tokens| - start_idx, 2
 {
     //parse the expression after the operator
@@ -258,6 +267,7 @@ requires forall i :: 0 <= i < |tokens| ==> validValue(tokens[i])
 requires ValidBinary(operation)
 //if we can parse the binary operation, the index pointer must increase
 ensures result.Ok? ==> start_idx < end_idx
+ensures result.Ok? ==> isWellFormed(result.data)
 decreases |tokens| - start_idx, 2
 {
 
@@ -312,6 +322,7 @@ requires forall i :: 0 <= i < |tokens| ==> validValue(tokens[i])
 requires ValidVariable(operation)
 //if the operation can be parsed, start_idx must increase
 ensures result.Ok? ==> start_idx < end_idx
+ensures result.Ok? ==> isWellFormed(result.data)
 decreases |tokens| - start_idx, 2
 {
 
@@ -368,6 +379,9 @@ decreases |tokens| - start_idx, 2
 
     //consume right parenthesis
     next_idx := next_idx + 1;
+
+    //TODO last thing we need to prove !!
+    assume{:axiom} isWellFormed(parsed_variable_op);
 
     //return parsed variable-argument operation
     result, end_idx := Ok(parsed_variable_op), next_idx;
