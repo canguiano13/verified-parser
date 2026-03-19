@@ -18,7 +18,7 @@ predicate validtype(token: Token){
     token.token_type==SPACE
 }
 predicate isWhiteSpace(ch: char){
-    ch==' '
+    ch==' ' || ch=='\n' || ch=='\t'
 }
 function Flatten(tok: seq<Token>): seq<char>
 /*requires forall
@@ -168,7 +168,29 @@ predicate validValue(tok: Token){
     (tok.token_type==STAR ==> tok.token_value=="*") &&
     (tok.token_type==SLASH ==> tok.token_value=="/") &&
     (tok.token_type==LEFT_PAREN ==> tok.token_value=="(") &&
-    (tok.token_type==RIGHT_PAREN ==> tok.token_value==")")
+    (tok.token_type==RIGHT_PAREN ==> tok.token_value==")") &&
+    (tok.token_type==SPACE ==> ValidWhiteSpace(tok))
+}
+
+lemma validLacksSpaces(tok:Token)
+    requires validtype(tok);
+    requires validValue(tok) && tok.token_type!=SPACE;
+    ensures (forall j::0<=j<|tok.token_value| ==> !isWhiteSpace(tok.token_value[j]))
+{
+    /*assert tok.token_type==PLUS || tok.token_type==MINUS ||tok.token_type==STAR ||tok.token_type==SLASH ||tok.token_type==UNARY_OP ||tok.token_type==BINARY_OP ||
+    tok.token_type==VARIABLE_OP ||tok.token_type==NUMBER ||tok.token_type==LEFT_PAREN ||tok.token_type==RIGHT_PAREN;
+    assert tok.token_type==PLUS ==> (forall j::0<=j<|tok.token_value| ==> !isWhiteSpace(tok.token_value[j]));
+    assert tok.token_type==MINUS ==> (forall j::0<=j<|tok.token_value| ==> !isWhiteSpace(tok.token_value[j]));
+    assert tok.token_type==UNARY_OP ==> (forall j::0<=j<|tok.token_value| ==> !isWhiteSpace(tok.token_value[j]));
+    assert tok.token_type==BINARY_OP ==> (forall j::0<=j<|tok.token_value| ==> !isWhiteSpace(tok.token_value[j]));
+    assert tok.token_type==VARIABLE_OP ==> (forall j::0<=j<|tok.token_value| ==> !isWhiteSpace(tok.token_value[j]));
+    assert tok.token_type==STAR ==> (forall j::0<=j<|tok.token_value| ==> !isWhiteSpace(tok.token_value[j]));
+    assert tok.token_type==SLASH ==> (forall j::0<=j<|tok.token_value| ==> !isWhiteSpace(tok.token_value[j]));
+    assert tok.token_type==LEFT_PAREN ==> (forall j::0<=j<|tok.token_value| ==> !isWhiteSpace(tok.token_value[j]));
+    assert tok.token_type==RIGHT_PAREN ==> (forall j::0<=j<|tok.token_value| ==> !isWhiteSpace(tok.token_value[j]));
+    assert tok.token_type==NUMBER ==> (forall j::0<=j<|tok.token_value| ==> !isWhiteSpace(tok.token_value[j]));
+
+*/
 }
 
 method Lex1(str: seq<char>) returns (tokenized: Result<seq<Token>>)
@@ -192,7 +214,7 @@ ensures tokenized.Ok? ==> forall i:: 0<=i<|tokenized.data| ==> (
 )
 
 //ensures all characters are represented in order in tokens
-ensures tokenized.Ok? ==> Flatten(tokenized.data)==str;
+
 
 //ensures no false positives when returning errors
 ensures tokenized.Err? ==> (
@@ -210,6 +232,8 @@ ensures tokenized.Err? ==> (
 )
 )
 )
+
+ensures tokenized.Ok? ==> Flatten(tokenized.data)==str
 /*||
 (exists i: nat ::
 !ValidString(tok[i].token_value) && forall j::0<=j<|tok[i].token_value| ==>(tok[i].token_value[j] as int >=97 && tok[i].token_value[j] as int  <=122)
@@ -222,7 +246,7 @@ ensures tokenized.Err? ==> (
     //var tokpos:=0;
     var tok: seq<Token> := [];
     while i<|str|
-    invariant forall i:: 0<=i<|tok| ==> (validType(tok[i]) ||tok[i].token_type==TEMPSTRING)
+    invariant forall i:: 0<=i<|tok| ==> (validtype(tok[i]) ||tok[i].token_type==TEMPSTRING)
     invariant i<=|str|
     invariant forall i:: 0<=i<|tok| ==> (validValue(tok[i])||tok[i].token_type==TEMPSTRING)
     invariant Flatten(tok)==str[0..i]
@@ -296,7 +320,7 @@ ensures tokenized.Err? ==> (
         }
          
         assert validtype(tok[|tok|-1]) || tok[|tok|-1].token_type==TEMPSTRING;
-        assert validValue(tok[|tok|-1]) || tok[|tok|-1].token_type==TEMPSTRING;
+        assert validValue(tok[|tok|-1]);
         i:=i+1;
         
         //assert forall i:: 0<=i<|tok| ==> validValue(tok[i]);
@@ -357,12 +381,12 @@ ensures tokenized.Err? ==> (
                 Pair(UNARY_OP,tok[i].token_value)];
                 //assert validtype(tok[i]);
             }
-            else if(ValidBinary(tok[i].token_value)){
+            else if(ValidBinary(tok[i])){
                 tok := tok[i :=
                 Pair(BINARY_OP,tok[i].token_value)];
                 //assert validtype(tok[i]);
             }
-            else if(ValidVariable(tok[i].token_value)){
+            else if(ValidVarOp(tok[i])){
                 tok := tok[i :=
                 Pair(VARIABLE_OP,tok[i].token_value)];
                 //assert validtype(tok[i]);
@@ -385,29 +409,42 @@ ensures tokenized.Err? ==> (
     return Ok(tok);
 }
 
+
+
 method RemoveSpaces(tok: seq<Token>) returns (spaceless: seq<Token>)
+//requires forall i:: 0<=i<|tok| ==> (forall j::0<=j<|tok[i].token_value| ==> !isWhiteSpace(tok[i].token_value[j]))
+requires forall i:: 0<=i<|tok| ==> (validValue(tok[i]))
+requires forall i:: 0<=i<|tok| ==> (validtype(tok[i]))
 ensures forall i:: 0<=i<|spaceless| ==> spaceless[i].token_type!=SPACE
 ensures Flatten(spaceless)==Spaceless(Flatten(tok))
 {
     var i:=0;
     var out: seq<Token> := [];
+    //lemma()
+    //assert forall i:: 0<=i<|tok| ==> (forall j::0<=j<|tok[i].token_value| ==> !isWhiteSpace(tok[i].token_value[j]));
     while i<|tok|
     invariant i<=|tok|
     invariant forall j::0<=j<|out| ==> out[j].token_type!=SPACE
     invariant Flatten(out)==Spaceless(Flatten(tok[0..i]))
     {
+        
         //assume tok[i].token_type==SPACE;
         if tok[i].token_type!=SPACE{
+            validLacksSpaces(tok[i]);
+            assert (forall j::0<=j<|tok[i].token_value| ==> !isWhiteSpace(tok[i].token_value[j]));
             out:=out+[tok[i]];
             PartialFlatAdd(i,tok);
             //FlatAdd(tok[0..i+1]);
             assert Flatten(tok[0..i+1])==Flatten(tok[0..i])+tok[i].token_value;
-            assume tok[i].token_value=="abc";
+            //assume tok[i].token_value=="abc";
             SpaceAddTok(tok[i].token_value,Flatten(tok[0..i]));
             assert Spaceless(Flatten(tok[0..i+1]))==Spaceless(Flatten(tok[0..i]))+tok[i].token_value;
         }
         else{
-            assume tok[i].token_value==" ";
+            //assume tok[i].token_value==" ";
+            assert tok[i].token_value==" " || tok[i].token_value=="\n" || tok[i].token_value=="\t";
+            assert |tok[i].token_value|==1;
+            assert isWhiteSpace(tok[i].token_value[0]);
             PartialFlatAdd(i,tok);
             //FlatAdd(tok[0..i+1]);
             assert Flatten(tok[0..i+1])==Flatten(tok[0..i])+tok[i].token_value;
