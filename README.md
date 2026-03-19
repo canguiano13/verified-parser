@@ -22,7 +22,7 @@ Expressions containing the following operations are supported by the parser:
  ```
 
 ## 1. Prerequisites
-This project uses Dafny to assist with formal verification, and Python as a driver for the formally verified parts. Consequently, you'll need to make sure that you have installed both. You can test this with the following (Bash) commands:
+This project uses Dafny to assist with formal verification, and Python as a driver for the I/O portions. Thus, you'll need to make sure that you have installed both. You can test this with the following terminal commands:
 
 ```
 python3 --version
@@ -43,7 +43,7 @@ cd verified-parser
 
 ## 2. Running the Parser
 
-To start, run `build.sh`, which will build the Dafny project into a Python module. This is required before you can start parsing expressions. This script has been tested on a machine running Ubuntu 24.04. If it fails to build the project, see **3. Manually Building**
+To start, run `build.sh`, which will build the Dafny project. This is required before you can start parsing expressions. This script has been tested on a machine running Ubuntu 24.04. If it fails to build the project, see **3. Manually Building**
 
 ```
 ./build.sh 
@@ -62,7 +62,6 @@ Once it has been compiled, you can pass an expression via the command-line to ou
 ```
 python3 main.py "(+ 1 2 (- 4 3))"
 ```
-
 
 will produce the following AST:
 
@@ -100,12 +99,14 @@ dafny build --target:py --output:parse_ast parser.dfy lexer.dfy types.dfy valida
 ```
 
 Once this completes, you should see a folder named `parse_ast-py/` in your directory. Copy the driver into this directory, then `cd` into it.
+
 ```
 cp driver.py ./parse_ast-py/main.py
 cd ./parse_ast-py
 ```
 
 Now the parser is ready to accept an expression!
+
 ```
 python3 main.py "(+ 1 2 (- 4 3))"
 ```
