@@ -36,7 +36,7 @@ Instructions for Python and Dafny can be found at the following links:
 
 ## 2. Running the Parser
 
-To start, run `build.sh`, which will build the Dafny project into a Python module. This is required before you can start parsing expressions. 
+To start, run `build.sh`, which will build the Dafny project into a Python module. This is required before you can start parsing expressions. This script has been tested on a machine running Ubuntu 24.04. If it fails to build the project, see **3. Troubleshooting**
 
 ```
 ./build.sh 
