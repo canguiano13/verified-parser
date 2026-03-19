@@ -1,58 +1,58 @@
-//TODO might be good to separate the testing from the lexing and parsing
 include "parser.dfy"
 include "lexer.dfy"
+include "types.dfy"
+include "validate.dfy"
 
-//unit tests for tagging
-//TODO we can probably remove this because the lexer will include this logic
-method testTag()
-requires true
-ensures true
+
+//mirrors main
+//tests our logic to make sure the verification doesn't assume anything too strong
+method main(s: string)
+requires |s| > 0
 {
-    //TODO implement
-    assume{:axiom} false;
-
-}
-
-//unit tests for lexing
-method testLex()
-requires true
-ensures true
-{
-    //TODO implement
-    assume{:axiom} false;
-
-}
-method testSimple(){
-    var s:= "(+12)";
-    var tokens := lex(s);
-
-    if tokens.Err?{
-        assert false;
+    //lex the string into tokens
+    var lex_result := lex(s);
+    if lex_result.Err?{
+        print lex_result.error;
     }
+    //otherwise lexing was successful
+    var tokens := lex_result.data;
 
-    var ast := parse(tokens.data);
-    var expectedTree := "(+123)";
-
-    //assert eq something
-    //assert ast.data == expectedTree;
+    //parse the tokens according to the ast
+    var parse_result := parse(tokens);
+    if parse_result.Err?{
+        print parse_result.error;
+    }
+    //else we could parse it into an ast
+    var ast := parse_result.data;
+    print ast;
 }
 
-//unit tests for parsing
-method testParse()
-requires true
-ensures true
-{
-    //create empty list of tokens with only EOF token
-    var tokens1: seq<Token> := [];
-    var eof_token: Token := Pair(TokenType.EOF, "");
-    //add to tokens
-    //tokens1 := tokens1 + eof_token;
-    //var result1: Result := parse(tokens1);
-    //make sure that our parser returns an error
-    //assert result1.error == "unexpected end of file";
 
-    //TODO implement
-    assume{:axiom} (false);
-assume{:axiom} false;
+//some lexing unit tests
+method TestLex(){
 
 }
+method TestLexInvalidOp(){
+
+}
+method TestLexAllWhitespace(){
+
+}
+
+//parsing unit tests
+method TestParseNumber(){
+
+}
+method TestParseUnaryExpr(){
+
+}
+method TestParseBinaryExpr(){
+
+}
+method TestParseVariableExpr(){
+
+}
+method parseVariableExprEmptyArglist(){
+
+}
+

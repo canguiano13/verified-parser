@@ -1,5 +1,13 @@
 include "types.dfy"
 
+//true if a token's value is a whitespace character
+predicate ValidWhiteSpace(tok: Token){
+    tok.token_value==" " || tok.token_value=="\n" || tok.token_value=="\t"
+}
+//true if a single character is a whitespace character
+predicate isWhiteSpace(ch: char){
+    ch==' ' || ch=='\n' || ch=='\t'
+}
 //only one dot in the string representing the number..avoids malformed numbers like 3.1.4
 predicate oneDot(token_value: string){
     true
@@ -10,7 +18,6 @@ predicate ValidNumber(tok: Token){
         (((tok.token_value[i] as int >= 48 && tok.token_value[i] as int <= 57) || tok.token_value[i]=='.'))
    
 }
-
 //true if a token's value is any valid operation in the language
 predicate ValidOp(operationValue: string){
     operationValue == "+" || operationValue == "-" ||
@@ -33,7 +40,17 @@ predicate ValidVariable(token_value: string){
     token_value == "*" || token_value == "/" || 
     token_value == "min" || token_value == "max"
 }
+//true if a token's value is a valid multi-length identifer for an operation
+predicate ValidString(str: seq<char>){
+    str=="abs" ||
+    str=="sqrt" ||
+    str=="ceil" ||
+    str=="modulo" ||
+    str=="expt" ||
+    str=="min" ||
+    str=="max"
 
+}
 
 //true if a token representing a valid unary operation has the correct type
 predicate validUnaryTok(tok: Token)
@@ -76,11 +93,13 @@ predicate validType(tok: Token){
     tok.token_type==NUMBER ||
     tok.token_type==UNARY_OP ||
     tok.token_type==BINARY_OP ||
-    tok.token_type==VARIABLE_OP ||
-    tok.token_type==EOF
+    tok.token_type==VARIABLE_OP
 }
 
+
+
 //true if at token with a valid type has a valid token value
+//i.e. it's type implies that it is an appropriate operation for that type
 predicate validValue(tok: Token){
     (tok.token_type==UNARY_OP ==> ValidUnary(tok.token_value)) &&
     (tok.token_type==BINARY_OP ==> ValidBinary(tok.token_value)) &&
