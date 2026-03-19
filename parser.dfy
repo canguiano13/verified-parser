@@ -17,26 +17,24 @@ include "validate.dfy"
 
 
 //true if an expression is well-formed
-//all operators are valid given the tokenType
-//all subexpressions are well-formed
+//  all operators are valid given the tokenType
+//  all subexpressions are well-formed
 predicate isWellFormed(expr: Expr){
     //numbers are always be well-formed
     (expr.Number? ==> true) &&
     //unary operations should have valid unary operator and well formed subexpression
     (expr.UnaryOp? ==> 
-        ValidUnary(expr.op) && isWellFormed(expr.arg)
-    ) &&
+        ValidUnary(expr.op) && isWellFormed(expr.arg)) &&
     (expr.BinaryOp? ==>
-        ValidBinary(expr.op) && isWellFormed(expr.arg1) && isWellFormed(expr.arg2)
-    ) &&
+        ValidBinary(expr.op) && isWellFormed(expr.arg1) && isWellFormed(expr.arg2)) &&
     (expr.VariableOp? ==>
-        ValidVariable(expr.op) && isWellFormed(expr.arg1) && wellFormedArgList(expr.argList)
-    )
+        ValidVariable(expr.op) && isWellFormed(expr.arg1) && wellFormedArgList(expr.argList))
 }
-
+//true if all subexpressions in an argument list are well-formed
 predicate wellFormedArgList(argList: seq<Expr>){
     forall i :: 0 <= i < |argList| ==> isWellFormed(argList[i])
 }
+
 //peek ahead by a single token, but do not consume it
 //if there are no more tokens, return EOF
 method peekToken(tokens: seq<Token>, start_idx: int) returns (result: Token)
@@ -350,6 +348,7 @@ decreases |tokens| - start_idx, 2
     while nextToken.token_type != TokenType.RIGHT_PAREN
     //start_idx is always in bounds
     invariant 0 <= start_idx < |tokens|
+    invariant wellFormedArgList(subexprList)
     //start_idx pointer always gets closer to the end of the token sequence
     decreases |tokens| - next_idx, 1
     {
@@ -379,9 +378,6 @@ decreases |tokens| - start_idx, 2
 
     //consume right parenthesis
     next_idx := next_idx + 1;
-
-    //TODO last thing we need to prove !!
-    assume{:axiom} isWellFormed(parsed_variable_op);
 
     //return parsed variable-argument operation
     result, end_idx := Ok(parsed_variable_op), next_idx;
