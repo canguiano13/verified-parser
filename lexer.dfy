@@ -1,25 +1,6 @@
-datatype TokenType = LEFT_PAREN | RIGHT_PAREN | DOT | MINUS | PLUS | STAR | SLASH 
-                     | UNARY_OP | BINARY_OP | VARIABLE_OP | NUMBER | EOF | TEMPSTRING | SPACE
+include "types.dfy"
+include "validate.dfy"
 
-datatype Token = Pair(token_type:TokenType, token_value:string)
-datatype Result<T> = Ok(data: T) | Err(error: string)
-
-predicate validtype(token: Token){
-    token.token_type==LEFT_PAREN ||
-    token.token_type==RIGHT_PAREN ||
-    token.token_type==MINUS ||
-    token.token_type==PLUS ||
-    token.token_type==STAR ||
-    token.token_type==SLASH ||
-    token.token_type==NUMBER ||
-    token.token_type==UNARY_OP ||
-    token.token_type==BINARY_OP ||
-    token.token_type==VARIABLE_OP ||
-    token.token_type==SPACE
-}
-predicate isWhiteSpace(ch: char){
-    ch==' ' || ch=='\n' || ch=='\t'
-}
 function Flatten(tok: seq<Token>): seq<char>
 /*requires forall
 ensures |Flatten(tok)|>|tok|
@@ -31,9 +12,9 @@ ensures forall i::0<=i<|tok| ==> exists j: nat::tok[i].token_value==Flatten(tok)
   
 }
 
-ghost predicate contains(str: seq<char>, substr: seq<char>){
-    exists i: nat:: exists l:nat :: (i+l<=|str| && substr==str[i..i+l])
-}
+//ghost predicate contains(str: seq<char>, substr: seq<char>){
+//   exists i: nat:: exists l:nat :: (i+l<=|str| && substr==str[i..i+l])
+//}
 
 /*lemma FlatContains(tok:seq<Token>){
     assert |tok|>0 ==> Flatten(tok)==Flatten(tok[0..|tok|-1])+tok[|tok|-1].token_value;
@@ -58,7 +39,7 @@ function Spaceless(str: seq<char>): seq<char>
 }
 lemma SpaceAdd(ch: char,str:seq<char>)
 requires !isWhiteSpace(ch)
-ensures Spaceless(str+[ch])==Spaceless(str)+[ch];
+ensures Spaceless(str+[ch])==Spaceless(str)+[ch]
 {
 
 }
@@ -90,7 +71,7 @@ ensures Spaceless(str+tokVal)==Spaceless(str)+tokVal
 }
 lemma FlatAdd(tok:seq<Token>)
     requires |tok|>=1
-    ensures Flatten(tok[0..|tok|])==Flatten(tok[0..|tok|-1])+tok[|tok|-1].token_value;
+    ensures Flatten(tok[0..|tok|])==Flatten(tok[0..|tok|-1])+tok[|tok|-1].token_value
 {
     assert tok==tok[0..|tok|];
     assert Flatten(tok)==Flatten(tok[0..|tok|]);
@@ -112,7 +93,7 @@ lemma PartialFlatAdd(i: nat, tok:seq<Token>)
 
 lemma Flatsame(tok: seq<Token>,tok2: seq<Token>)
 requires |tok|==|tok2|
-requires forall i :: 0<=i<|tok| ==> tok[i].token_value==tok2[i].token_value;
+requires forall i :: 0<=i<|tok| ==> tok[i].token_value==tok2[i].token_value
 ensures Flatten(tok)==Flatten(tok2)
 {
 
@@ -132,51 +113,11 @@ ensures exists j : nat:: tok[i].token_value==str[j..j+|tok[i].token_value|]
         
     )
 }*/
-predicate ValidUnary(tok: Token){
-    tok.token_value=="abs" || tok.token_value=="sqrt" || tok.token_value=="ceil"
-}
-predicate ValidBinary(tok: Token){
-    tok.token_value=="modulo" || tok.token_value=="expt"
-}
-predicate ValidVarOp(tok: Token){
-    tok.token_value=="min" || tok.token_value=="max"
-}
-predicate ValidString(str: seq<char>){
-    str=="abs" ||
-    str=="sqrt" ||
-    str=="ceil" ||
-    str=="modulo" ||
-    str=="expt" ||
-    str=="min" ||
-    str=="max"
 
-}
-predicate ValidNumber(tok: Token){
-    forall i::0<=i<|tok.token_value| ==>(
-        (tok.token_value[i] as int >=48 && tok.token_value[i] as int  <=57)
-        || tok.token_value[i]=='.'
-    )
-}
-predicate ValidWhiteSpace(tok: Token){
-    tok.token_value==" " || tok.token_value=="\n" || tok.token_value=="\t"
-}
-predicate validValue(tok: Token){
-    (tok.token_type==UNARY_OP ==> ValidUnary(tok)) &&
-    (tok.token_type==BINARY_OP ==> ValidBinary(tok)) &&
-    (tok.token_type==VARIABLE_OP ==> ValidVarOp(tok)) &&
-    (tok.token_type==NUMBER ==> ValidNumber(tok)) &&
-    (tok.token_type==PLUS ==> tok.token_value=="+") &&
-    (tok.token_type==MINUS ==> tok.token_value=="-") &&
-    (tok.token_type==STAR ==> tok.token_value=="*") &&
-    (tok.token_type==SLASH ==> tok.token_value=="/") &&
-    (tok.token_type==LEFT_PAREN ==> tok.token_value=="(") &&
-    (tok.token_type==RIGHT_PAREN ==> tok.token_value==")") &&
-    (tok.token_type==SPACE ==> ValidWhiteSpace(tok))
-}
 
 lemma validLacksSpaces(tok:Token)
-    requires validtype(tok);
-    requires validValue(tok) && tok.token_type!=SPACE;
+    requires validtype(tok)
+    requires validValue(tok) && tok.token_type!=SPACE
     ensures (forall j::0<=j<|tok.token_value| ==> !isWhiteSpace(tok.token_value[j]))
 {
     /*assert tok.token_type==PLUS || tok.token_type==MINUS ||tok.token_type==STAR ||tok.token_type==SLASH ||tok.token_type==UNARY_OP ||tok.token_type==BINARY_OP ||
@@ -345,10 +286,10 @@ ensures tokenized.Ok? ==> forall i:: 0<=i<|tokenized.data| ==> (
 )
 
 //ensures all characters are represented in order in tokens
-ensures tokenized.Ok? ==> Flatten(tokenized.data)==str;
+ensures tokenized.Ok? ==> Flatten(tokenized.data)==str
 requires forall i:: 0<=i<|oldtok| ==> (validtype(oldtok[i]) || oldtok[i].token_type==TEMPSTRING)
 requires forall i:: 0<=i<|oldtok| ==> (validValue(oldtok[i]) || oldtok[i].token_type==TEMPSTRING)
-requires Flatten(oldtok)==str;
+requires Flatten(oldtok)==str
 
 ensures tokenized.Err? ==> (
     exists i:nat :: 
@@ -365,8 +306,8 @@ ensures tokenized.Err? ==> (
     while i<|tok|
     invariant i<=|tok|
     invariant forall j:: 0<=j<i ==> validValue(tok[j])
-    invariant forall j:: 0<=j<|tok| ==> (validtype(tok[j]) ||tok[j].token_type==TEMPSTRING);
-    invariant forall j:: 0<=j<|tok| ==> (validValue(tok[j]) ||tok[j].token_type==TEMPSTRING);
+    invariant forall j:: 0<=j<|tok| ==> (validtype(tok[j]) ||tok[j].token_type==TEMPSTRING)
+    invariant forall j:: 0<=j<|tok| ==> (validValue(tok[j]) ||tok[j].token_type==TEMPSTRING)
     invariant forall j:: 0<=j<i ==> ((validtype(tok[j])))
     invariant |a|==|tok|
     invariant forall j:: i<=j<|tok| ==> tok[j].token_type==oldtok[j].token_type
@@ -378,17 +319,17 @@ ensures tokenized.Err? ==> (
         if(tok[i].token_type==TEMPSTRING){ //if token is string
             assert oldtok[i].token_type==TEMPSTRING;
             
-            if(ValidUnary(tok[i])){
+            if(ValidUnary(tok[i].token_value)){
                 tok := tok[i :=
                 Pair(UNARY_OP,tok[i].token_value)];
                 //assert validtype(tok[i]);
             }
-            else if(ValidBinary(tok[i])){
+            else if(ValidBinary(tok[i].token_value)){
                 tok := tok[i :=
                 Pair(BINARY_OP,tok[i].token_value)];
                 //assert validtype(tok[i]);
             }
-            else if(ValidVarOp(tok[i])){
+            else if(ValidVariable(tok[i].token_value)){
                 tok := tok[i :=
                 Pair(VARIABLE_OP,tok[i].token_value)];
                 //assert validtype(tok[i]);
@@ -464,7 +405,7 @@ ensures Flatten(spaceless.data)==Spaceless(Flatten(tok))
     return Ok(out);
 }
 
-method Lex (str:seq<char>)returns (tokenized: Result<seq<Token>>)
+method lex (str:seq<char>)returns (tokenized: Result<seq<Token>>)
 ensures tokenized.Ok? ==> forall i:: 0<=i<|tokenized.data| ==> ((validtype(tokenized.data[i])))
 
 //ensures all tokens are valid and correct type

@@ -1,5 +1,18 @@
 include "types.dfy"
 
+predicate validtype(token: Token){
+    token.token_type==LEFT_PAREN ||
+    token.token_type==RIGHT_PAREN ||
+    token.token_type==MINUS ||
+    token.token_type==PLUS ||
+    token.token_type==STAR ||
+    token.token_type==SLASH ||
+    token.token_type==NUMBER ||
+    token.token_type==UNARY_OP ||
+    token.token_type==BINARY_OP ||
+    token.token_type==VARIABLE_OP ||
+    token.token_type==SPACE
+}
 //true if a token's value is a whitespace character
 predicate ValidWhiteSpace(tok: Token){
     tok.token_value==" " || tok.token_value=="\n" || tok.token_value=="\t"
@@ -110,7 +123,8 @@ predicate validValue(tok: Token){
     (tok.token_type==STAR ==> tok.token_value=="*") &&
     (tok.token_type==SLASH ==> tok.token_value=="/") &&
     (tok.token_type==LEFT_PAREN ==> tok.token_value=="(") &&
-    (tok.token_type==RIGHT_PAREN ==> tok.token_value==")") 
+    (tok.token_type==RIGHT_PAREN ==> tok.token_value==")") &&
+    (tok.token_type==SPACE ==> ValidWhiteSpace(tok))
 }
 
 //true if the token has a valid type, and the value is implied by the type
@@ -118,13 +132,4 @@ predicate validToken(tok: Token){
     validType(tok) && validValue(tok)
 }
 
-//true if an expression is well-formed
-predicate ValidSubexpression(expr: Expr){
-    true
-}
-//true if 
-predicate ValidSubexpressions(exprs: seq<Expr>)
-{
-    forall i :: 0 <= i < |exprs| ==> ValidSubexpression(exprs[i])
-}
 
