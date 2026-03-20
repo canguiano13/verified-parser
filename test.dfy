@@ -42,31 +42,4 @@ requires |s| > 0
 }
 
 
-//some lexing unit tests
-method TestLex(){
-
-}
-method TestLexInvalidOp(){
-
-}
-method TestLexAllWhitespace(){
-
-}
-
-//parsing unit tests
-method TestParseNumber(){
-
-}
-method TestParseUnaryExpr(){
-
-}
-method TestParseBinaryExpr(){
-
-}
-method TestParseVariableExpr(){
-
-}
-method parseVariableExprEmptyArglist(){
-
-}
 
