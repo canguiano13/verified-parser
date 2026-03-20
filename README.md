@@ -66,23 +66,21 @@ python3 main.py "(+ 1 2 (- 4 3))"
 will produce the following AST:
 
 ```
-(
-    +
+(+
     1
     2
-    (
-        -
+    (-
         4
         3
     )
 )
-
 ```
 
-Once you have finished using the parser, you can clean up unneeded files with our `clean.sh` script:
+If you changed any Dafny code and would like to rebuild the parser, first run the cleaning script:
 
 ```
 ./clean.sh
+./build.sh
 ```
 
 ## 3. Manually Building
@@ -98,7 +96,7 @@ Next, transpile the Dafny code into Python. This will make a module that we can 
 dafny build --target:py --output:parse_ast parser.dfy lexer.dfy types.dfy validate.dfy
 ```
 
-Once this completes, you should see a folder named `parse_ast-py/` in your directory. Copy the driver into this directory, then `cd` into it.
+Once this completes, you should see a folder named `parse_ast-py/` in your directory. Copy the driver into this directory with the name main.py, then `cd` into the new directory.
 
 ```
 cp driver.py ./parse_ast-py/main.py

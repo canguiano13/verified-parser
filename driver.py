@@ -3,29 +3,33 @@ import module_ as lexerparser
 import _dafny
 
 #convert a dafny sequence into a string
+#need this since dafny strings are internally character sequences (seq<char>)
 #thanks claude
 def seq_to_str(seq):
     return ''.join(seq)
 
 #print output
 #ast is a nested tree structure with a root expression and one or more subexpressions
-def pretty_print(ast, factor=1, root_print=True):
-    indent = "" * factor
+def pretty_print(ast, factor=0, root_print=True):
+    #let's use two spaces instead of a tab
+    indent = "  " * factor
+    left_paren = f"{indent}("
+    right_paren= f"{indent})"
 
     if ast.is_Number:
-        num = seq_to_str(ast.value)
-        return f"{indent}{num}"
+        num = f"{indent}{seq_to_str(ast.value)}"
+        return num
 
     elif ast.is_UnaryOp:
         op = seq_to_str(ast.op)
         arg = pretty_print(ast.arg, factor + 1)
-        return f"{indent}({op}\n{arg}\n)"
+        return f"{left_paren}{op}\n{arg}\n{right_paren}"
 
     elif ast.is_BinaryOp:
         op = seq_to_str(ast.op)
         arg1 = pretty_print(ast.arg1, factor + 1)
         arg2 = pretty_print(ast.arg2, factor + 1)
-        return f"{indent}({op}\n{arg1}\n{arg2}\n)"
+        return f"{left_paren}{op}\n{arg1}\n{arg2}\n{right_paren}"
 
     elif ast.is_VariableOp:
         op = seq_to_str(ast.op)
@@ -36,7 +40,7 @@ def pretty_print(ast, factor=1, root_print=True):
             args.append(pretty_print(arg, factor + 1))
         
         formatted_args = "\n".join(args)
-        return f"{indent}({op}\n{formatted_args}\n)"
+        return f"{left_paren}{op}\n{formatted_args}\n{right_paren}"
 
     else:
         error("Error while printing")
@@ -44,18 +48,19 @@ def pretty_print(ast, factor=1, root_print=True):
 #print an error message and exit immediately
 def error(message):
     sys.stderr.write(f"Error: {message}\n")
-    sys.stderr.write(f"Example usage: python3 main.py \"(+ 1 2 (- 4 3))\"\n")
     sys.exit(1)
 
 def main():
     #throw an error if the user doesn't provide the expression
     if len(sys.argv) <= 1:
+        sys.stderr.write(f"Example usage: python3 main.py \"(+ 1 2 (- 4 3))\"\n")
         error("Please provide an expression to parse")
-
+        
     #get the expression to parse from the user
     expr = sys.argv[-1]
-    if len(expr) == 0:
-        error("Unexpected EOF")
+    if not isinstance(expr, str):
+        error("bad expression")
+        sys.stderr.write(f"Example usage: python3 main.py \"(+ 1 2 (- 4 3))\"\n")
 
     #lex the tokens from the user's expression
     lex_result = lexerparser.default__.lex(expr)
@@ -64,7 +69,7 @@ def main():
         error(seq_to_str(lex_result.error))
     tokens = lex_result.data
 
-    #parse the tokens derived into an AST
+    #parse the derived tokens into an AST
     parse_result = lexerparser.default__.parse(tokens)
     #if can't parse, print the error
     if parse_result.is_Err:
