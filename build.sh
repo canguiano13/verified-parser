@@ -17,7 +17,7 @@ fi
 
 echo -n "Verifying and transpiling..."
 #compile the dafny files into python
-dafny build --target:py --output:parse_ast parser.dfy lexer2.dfy types.dfy validate.dfy
+dafny build --target:py --output:parse_ast parser.dfy lexer.dfy types.dfy validate.dfy
 
 #check that dafny could compile the files
 #build should have completed with exit code 0

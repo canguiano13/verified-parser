@@ -3,7 +3,7 @@ include "validate.dfy"
 
 /* more or less the grammar we're parsing
 <P>             ::= <expr>
-<expr>          ::= <unary-op> | <binary-op> | <variable-op> | <digits>
+<expr>          ::= <unary-op> | <binary-op> | <variable-op> | <number>
 <unary-op>      ::= (<unary> <expr>)
 <binary-op>     ::= (<binary> <expr> <expr>)
 <variable-op>   ::= (<variable> <expr-list>)
@@ -11,13 +11,15 @@ include "validate.dfy"
 <unary>         ::= abs | sqrt | ceil
 <binary>        ::= modulo | expt
 <variable>      ::= min | max | + | * | - | /
+<number>        ::= <digits> | <digits> . <digits>
 <digits>        ::= <digit> | <digit> <digits>
 <digit>         ::= 1 | 2 | .. | 9
 */
 
 
 //true if an expression is well-formed
-//  all operators are valid given the tokenType
+//  each expression type should have the correct number of arguments
+//  each expression should have a valid operator based on the type of expression it is
 //  all subexpressions are well-formed
 predicate isWellFormed(expr: Expr){
     //numbers are always be well-formed because of how they are lexed
@@ -69,7 +71,10 @@ method parse(tokens: seq<Token>) returns (result: Result<Expr>)
 //list of tokens should be nonempty
 //should be at least one token, otherwise the lexer will reject the expression
 requires |tokens| > 0
-//all tokens should be valid, otherwise the lexer will have rejected the expression
+//all tokens should have a valid type
+//this is guaranteed by the lexer
+requires forall i :: 0 <= i < |tokens| ==> validType(tokens[i])
+//all tokens should be operator for the type
 requires forall i :: 0 <= i < |tokens| ==> validValue(tokens[i])
 //if the parser can parse the tokens, the resulting tree must be well formed 
 //i.e. all tokens have the correct types, and all values should be valid according to their type
@@ -131,7 +136,10 @@ method expr(tokens: seq<Token>, start_idx: int) returns (result: Result<Expr>, e
 requires |tokens| > 0
 //start_idx must be in bounds
 requires 0 <= start_idx < |tokens|
-//all tokens should be valid
+//all tokens should have a valid type
+//this is guaranteed by the lexer
+requires forall i :: 0 <= i < |tokens| ==> validType(tokens[i])
+//all token values should be valid based on the type
 requires forall i :: 0 <= i < |tokens| ==> validValue(tokens[i])
 //if we can parse the expression, the start_idx pointer must increase
 ensures result.Ok? ==> end_idx > start_idx
@@ -159,7 +167,7 @@ decreases |tokens| - start_idx, 0
     //subexpression should always start with '(', otherwise it's not a valid subexpression, e.g. "(+ 1 + 2 3)"
     //verify that the token we are going to consume is a left paren
     if next_token.token_type != TokenType.LEFT_PAREN{
-        return Err("malformed expression. expressions should start with '('"), start_idx;
+        return Err("malformed expression. make sure your expression has the appropriate number of arguments and matching parenthesis"), start_idx;
     }
     //consume left parenthesis
     var next_idx := start_idx + 1;
@@ -179,7 +187,9 @@ method op(tokens: seq<Token>, start_idx: int) returns (result: Result<Expr>, end
 requires |tokens| > 0
 //start_idx should be in bounds before parsing
 requires 0 <= start_idx < |tokens|
-//all tokens should be valid
+//token type should be valid 
+requires forall i :: 0 <= i < |tokens| ==> validType(tokens[i])
+//all tokens should have a valid value based according to the type
 requires forall i :: 0 <= i < |tokens| ==> validValue(tokens[i])
 //if we can parse the operation, start_idx must increase
 ensures result.Ok? ==> end_idx > start_idx
@@ -224,7 +234,9 @@ method unaryOp(tokens: seq<Token>, start_idx: int, operation: string) returns (r
 requires |tokens| > 0
 //start_idx is in bounds
 requires 0 <= start_idx < |tokens|
-//lexing should only succeed if all token values are valid
+//token type should be valid 
+requires forall i :: 0 <= i < |tokens| ==> validType(tokens[i])
+//all tokens should have a valid value based according to the type
 requires forall i :: 0 <= i < |tokens| ==> validValue(tokens[i])
 //operation should be a valid unary operation
 requires ValidUnary(operation)
@@ -248,7 +260,7 @@ decreases |tokens| - start_idx, 2
     }
     //next token should be a right paren
     if tokens[next_idx].token_type != TokenType.RIGHT_PAREN{
-        return Err("malformed expression. all expressions should end with ')'"), start_idx;
+        return Err("malformed expression. make sure your expression has the appropriate number of arguments and matching parenthesis"), start_idx;
     }
 
     //the operation can be parsed
@@ -265,7 +277,9 @@ method binaryOp(tokens: seq<Token>, start_idx: int, operation: string) returns (
 requires |tokens| > 0
 //start_idx should be in bounds
 requires 0 <= start_idx < |tokens|
-//lexing should only succeed if all tokens are valid values
+//token type should be valid 
+requires forall i :: 0 <= i < |tokens| ==> validType(tokens[i])
+//all tokens should have a valid value based according to the type
 requires forall i :: 0 <= i < |tokens| ==> validValue(tokens[i])
 //operation token should be a valid binary token 
 requires ValidBinary(operation)
@@ -304,7 +318,7 @@ decreases |tokens| - start_idx, 2
     }
     //after parsing both arguments, last token in expression should be a right paren
     if tokens[next_idx].token_type != TokenType.RIGHT_PAREN{
-        return Err("malformed expression. all expressions should end with ')'"), next_idx;
+        return Err("malformed expression. make sure your expression has the appropriate number of arguments and matching parenthesis"), next_idx;
     }
 
     //consume right parenthesis
@@ -323,10 +337,14 @@ method variableOp(tokens: seq<Token>, start_idx: int, operation: string) returns
 requires |tokens| > 0
 //start_idx should be valid
 requires 0 <= start_idx < |tokens|
-//all token values should be valid
+//token type should be valid 
+requires forall i :: 0 <= i < |tokens| ==> validType(tokens[i])
+//all tokens should have a valid value based according to the type
 requires forall i :: 0 <= i < |tokens| ==> validValue(tokens[i])
 //operation should be a valid binary operation
 requires ValidVariable(operation)
+//after parsing, all tokens are still valid types
+ensures forall i :: 0 <= i < |tokens| ==> validType(tokens[i])
 //if the operation can be parsed, start_idx must increase
 ensures result.Ok? ==> start_idx < end_idx
 //if the parser can parse the tokens, the resulting tree must be well formed 

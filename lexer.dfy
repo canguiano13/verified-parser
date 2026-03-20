@@ -343,10 +343,13 @@ ensures tokenized.Ok? ==> forall i:: 0<=i<|tokenized.data| ==> (
 )
 
 //ensures all characters are represented in order in tokens
-
 ensures tokenized.Ok ==> ensures Flatten(tokenized)==Spaceless(Flatten(str))
-
 {
+
+    if |str| == 0{
+        return Err("empty expression");
+    }
+
     var tok:= Lex1(str);
     if(tok.Ok?){
         tok:=DefineTokens(tok.data,str);
