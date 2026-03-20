@@ -84,7 +84,7 @@ ensures Flatten(tok)==Flatten(tok2)
 
 //if a valid token is not labeled as whitespace, it does not contain whitespace
 lemma validLacksSpaces(tok:Token)
-    requires validtype(tok)
+    requires validType(tok)
     requires validValue(tok) && tok.token_type!=SPACE
     ensures (forall j::0<=j<|tok.token_value| ==> !isWhiteSpace(tok.token_value[j]))
 {
@@ -96,7 +96,7 @@ lemma validLacksSpaces(tok:Token)
 method Lex1(str: seq<char>) returns (tokenized: Result<seq<Token>>)
 
 //ensures all tokens are valid and correct type
-ensures tokenized.Ok? ==> forall i:: 0<=i<|tokenized.data| ==> ((validtype(tokenized.data[i])) ||tokenized.data[i].token_type==TEMPSTRING)
+ensures tokenized.Ok? ==> forall i:: 0<=i<|tokenized.data| ==> ((validType(tokenized.data[i])) ||tokenized.data[i].token_type==TEMPSTRING)
 ensures tokenized.Ok? ==> forall i:: 0<=i<|tokenized.data| ==> (
     validValue(tokenized.data[i])
 )
@@ -126,7 +126,7 @@ ensures tokenized.Ok? ==> Flatten(tokenized.data)==str
     //var tokpos:=0;
     var tok: seq<Token> := [];
     while i<|str|
-    invariant forall i:: 0<=i<|tok| ==> (validtype(tok[i]) ||tok[i].token_type==TEMPSTRING)
+    invariant forall i:: 0<=i<|tok| ==> (validType(tok[i]) ||tok[i].token_type==TEMPSTRING)
     invariant i<=|str|
     invariant forall i:: 0<=i<|tok| ==> (validValue(tok[i])||tok[i].token_type==TEMPSTRING)
     invariant Flatten(tok)==str[0..i]
@@ -195,7 +195,7 @@ ensures tokenized.Ok? ==> Flatten(tokenized.data)==str
             }  
         }
          
-        assert validtype(tok[|tok|-1]) || tok[|tok|-1].token_type==TEMPSTRING;
+        assert validType(tok[|tok|-1]) || tok[|tok|-1].token_type==TEMPSTRING;
         assert validValue(tok[|tok|-1]);
         i:=i+1;
     }
@@ -209,7 +209,7 @@ ensures tokenized.Ok? ==> Flatten(tokenized.data)==str
 method DefineTokens (oldtok: seq<Token>, str: seq<char>) returns (tokenized: Result<seq<Token>>)
 
 //ensures no tempstrings
-ensures tokenized.Ok? ==> forall i:: 0<=i<|tokenized.data| ==> (validtype(tokenized.data[i]))
+ensures tokenized.Ok? ==> forall i:: 0<=i<|tokenized.data| ==> (validType(tokenized.data[i]))
 
 //ensures all tokens are valid and correct type
 ensures tokenized.Ok? ==> forall i:: 0<=i<|tokenized.data| ==> (
@@ -220,7 +220,7 @@ ensures tokenized.Ok? ==> forall i:: 0<=i<|tokenized.data| ==> (
 ensures tokenized.Ok? ==> Flatten(tokenized.data)==str
 
 //requirements are same as ensures from Lex1 (should always be true)
-requires forall i:: 0<=i<|oldtok| ==> (validtype(oldtok[i]) || oldtok[i].token_type==TEMPSTRING)
+requires forall i:: 0<=i<|oldtok| ==> (validType(oldtok[i]) || oldtok[i].token_type==TEMPSTRING)
 requires forall i:: 0<=i<|oldtok| ==> (validValue(oldtok[i]) || oldtok[i].token_type==TEMPSTRING)
 requires Flatten(oldtok)==str
 
@@ -239,9 +239,9 @@ ensures tokenized.Err? ==> (
     while i<|tok|
     invariant i<=|tok|
     invariant forall j:: 0<=j<i ==> validValue(tok[j])
-    invariant forall j:: 0<=j<|tok| ==> (validtype(tok[j]) ||tok[j].token_type==TEMPSTRING)
+    invariant forall j:: 0<=j<|tok| ==> (validType(tok[j]) ||tok[j].token_type==TEMPSTRING)
     invariant forall j:: 0<=j<|tok| ==> (validValue(tok[j]) ||tok[j].token_type==TEMPSTRING)
-    invariant forall j:: 0<=j<i ==> ((validtype(tok[j])))
+    invariant forall j:: 0<=j<i ==> ((validType(tok[j])))
     invariant |a|==|tok|
     invariant forall j:: i<=j<|tok| ==> tok[j].token_type==oldtok[j].token_type
     invariant forall j:: 0<=j<|tok| ==> a[j].token_value==tok[j].token_value
@@ -264,13 +264,13 @@ ensures tokenized.Err? ==> (
             }
             else{
                 assert (i<|oldtok| && oldtok[i].token_type==TEMPSTRING && !ValidString(oldtok[i].token_value));
-                return Err("invalid string");
+                return Err("invalid operator");
             }   
         }
         assert a[i].token_value==tok[i].token_value;
         Flatsame(tok,a);
         assert tok[i].token_type!=TEMPSTRING;
-        assert validtype(tok[i]);
+        assert validType(tok[i]);
         i:=i+1;
     }
     return Ok(tok);
@@ -282,14 +282,14 @@ method RemoveSpaces(tok: seq<Token>) returns (spaceless: Result<seq<Token>>)
 
 //requires are same as ensures from DefineTokens (should always be true)
 requires forall i:: 0<=i<|tok| ==> (validValue(tok[i]))
-requires forall i:: 0<=i<|tok| ==> (validtype(tok[i]))
+requires forall i:: 0<=i<|tok| ==> (validType(tok[i]))
 
 //should never throw error
 ensures spaceless.Ok?
 
 //tokens should be valid type/value
 ensures forall i:: 0<=i<|spaceless.data| ==> (validValue(spaceless.data[i]))
-ensures forall i:: 0<=i<|spaceless.data| ==> (validtype(spaceless.data[i]))
+ensures forall i:: 0<=i<|spaceless.data| ==> (validType(spaceless.data[i]))
 
 //whitespaces should be gone
 ensures forall i:: 0<=i<|spaceless.data| ==> spaceless.data[i].token_type!=SPACE
@@ -304,8 +304,8 @@ ensures Flatten(spaceless.data)==Spaceless(Flatten(tok))
     while i<|tok|
     invariant i<=|tok|
     invariant forall i:: 0<=i<|tok| ==> (validValue(tok[i]))
-    invariant forall i:: 0<=i<|tok| ==> (validtype(tok[i]))
-    invariant forall j::0<=j<|out| ==> (out[j].token_type!=SPACE && validValue(out[j]) && validtype(out[j]))
+    invariant forall i:: 0<=i<|tok| ==> (validType(tok[i]))
+    invariant forall j::0<=j<|out| ==> (out[j].token_type!=SPACE && validValue(out[j]) && validType(out[j]))
     invariant Flatten(out)==Spaceless(Flatten(tok[0..i]))
     {
         if tok[i].token_type!=SPACE{
@@ -335,7 +335,7 @@ ensures Flatten(spaceless.data)==Spaceless(Flatten(tok))
 
 //OVERALL LEXING METHOD: TAKES STRING AND CONVERTS INTO USEFUL TOKENS FOR PARSING
 method lex (str:seq<char>)returns (tokenized: Result<seq<Token>>)
-ensures tokenized.Ok? ==> forall i:: 0<=i<|tokenized.data| ==> ((validtype(tokenized.data[i])))
+ensures tokenized.Ok? ==> forall i:: 0<=i<|tokenized.data| ==> ((validType(tokenized.data[i])))
 
 //ensures all tokens are valid and correct type
 ensures tokenized.Ok? ==> forall i:: 0<=i<|tokenized.data| ==> (
@@ -343,7 +343,7 @@ ensures tokenized.Ok? ==> forall i:: 0<=i<|tokenized.data| ==> (
 )
 
 //ensures all characters are represented in order in tokens
-ensures tokenized.Ok ==> ensures Flatten(tokenized)==Spaceless(Flatten(str))
+ensures tokenized.Ok? ==> Flatten(tokenized.data)==Spaceless(str)
 {
 
     if |str| == 0{

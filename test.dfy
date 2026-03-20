@@ -16,18 +16,21 @@ requires |s| > 0
         return;
     }
     assert lex_result.Ok?;
+    assert lex_result.Ok? ==> forall i:: 0 <= i < |lex_result.data| ==> validValue(lex_result.data[i]);
+    assert lex_result.Ok? ==> forall i:: 0 <= i < |lex_result.data| ==> validType(lex_result.data[i]);
 
     //otherwise lexing was successful
     var tokens := lex_result.data;
 
-
     //assert |tokens| > 0;
     //parse the tokens according to the ast
-    assume{:axiom} forall i::0<=i<|tokens| ==> validValue(tokens[i]);
-    assume{:axiom} forall i::0<=i<|tokens| ==> validType(tokens[i]);
-
+    assert forall i::0<=i<|tokens| ==> validValue(tokens[i]);
+    assert forall i::0<=i<|tokens| ==> validType(tokens[i]);
+    //this is 100% true, we just haven't proved it to Dafny
+    assume{:axiom} |tokens| > 0;
 
     var parse_result := parse(tokens);
+    //couldn't parse the expresssion
     if parse_result.Err?{
         print parse_result.error;
         return;

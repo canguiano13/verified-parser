@@ -73,9 +73,7 @@ method parse(tokens: seq<Token>) returns (result: Result<Expr>)
 requires |tokens| > 0
 //all tokens should have a valid type
 //this is guaranteed by the lexer
-requires forall i :: 0 <= i < |tokens| ==> validType(tokens[i])
-//all tokens should be operator for the type
-requires forall i :: 0 <= i < |tokens| ==> validValue(tokens[i])
+requires forall i :: 0 <= i < |tokens| ==> validToken(tokens[i])
 //if the parser can parse the tokens, the resulting tree must be well formed 
 //i.e. all tokens have the correct types, and all values should be valid according to their type
 ensures result.Ok? ==> isWellFormed(result.data)

@@ -1,17 +1,18 @@
 include "types.dfy"
 
-predicate validtype(token: Token){
-    token.token_type==LEFT_PAREN ||
-    token.token_type==RIGHT_PAREN ||
-    token.token_type==MINUS ||
-    token.token_type==PLUS ||
-    token.token_type==STAR ||
-    token.token_type==SLASH ||
-    token.token_type==NUMBER ||
-    token.token_type==UNARY_OP ||
-    token.token_type==BINARY_OP ||
-    token.token_type==VARIABLE_OP ||
-    token.token_type==SPACE
+//true if a token has a valid token type
+predicate validType(tok: Token){
+    tok.token_type==LEFT_PAREN ||
+    tok.token_type==RIGHT_PAREN ||
+    tok.token_type==MINUS ||
+    tok.token_type==PLUS ||
+    tok.token_type==STAR ||
+    tok.token_type==SLASH ||
+    tok.token_type==NUMBER ||
+    tok.token_type==UNARY_OP ||
+    tok.token_type==BINARY_OP ||
+    tok.token_type==VARIABLE_OP ||
+    tok.token_type==SPACE
 }
 //true if a token's value is a whitespace character
 predicate ValidWhiteSpace(tok: Token){
@@ -94,21 +95,6 @@ predicate validVariableType(token_type: TokenType){
     token_type == SLASH ||
     token_type == VARIABLE_OP
 }
-
-//true if a token has a valid token type
-predicate validType(tok: Token){
-    tok.token_type==LEFT_PAREN ||
-    tok.token_type==RIGHT_PAREN ||
-    tok.token_type==MINUS ||
-    tok.token_type==PLUS ||
-    tok.token_type==STAR ||
-    tok.token_type==SLASH ||
-    tok.token_type==NUMBER ||
-    tok.token_type==UNARY_OP ||
-    tok.token_type==BINARY_OP ||
-    tok.token_type==VARIABLE_OP
-}
-
 
 
 //true if at token with a valid type has a valid token value
