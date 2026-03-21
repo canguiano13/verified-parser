@@ -87,7 +87,7 @@ If you changed any Dafny code and would like to rebuild the parser, first run th
 In the event the `./build.sh` script doesn't work for you, can also build using the following steps. First, verify the files we're going to build. This should report no errors.
 
 ```
-dafny verify parser.dfy lexer.dfy types.dfy validation.dfy
+dafny verify parser.dfy lexer.dfy types.dfy validate.dfy
 ```
 
 Next, transpile the Dafny code into Python. This will make a module that we can connect our driver file to.
