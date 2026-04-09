@@ -1,8 +1,8 @@
 # verified-parser
-Formally verified parser for a small subset of LISP
+Formally verified parser for a small subset of Scheme Lisp
 
 ## 0. Introduction
-This project aims to explore formal verification in the context of compilers by implementing a parser for a subset of Lisp operations. The goal is to ensure that, when given a LISP expression, our parser can guarantee that an appropriate AST is produced for any valid expression, and guarantee that an appropriate error is produced for an invalid expression.
+This project aims to explore formal verification in the context of compilers by implementing a parser for a subset of Lisp operations. The goal is to ensure that, when given a Lisp expression, our parser can guarantee that an appropriate AST is produced for any valid expression, and guarantee that an appropriate error is produced for an invalid expression.
 
 To achieve this, we implement formally verified functions in Dafny that first lex the user's expression into a series of tokens, then construct an Abstract Syntax Tree from those tokens.
 
